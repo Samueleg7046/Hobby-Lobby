@@ -1,0 +1,582 @@
+openapi: 3.0.4
+info: 
+  version: '1.0'
+  title: "Hobby Lobby API"
+  description: API for groups, meetings, places and activities
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Localhost
+
+paths: 
+  /activities:
+    post:
+      summary: Create new activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: 
+              $ref: "#/components/schemas/ActivityCreateRequest"
+      responses:
+        '201': 
+          description: 'Activity created successfully'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityResponse"
+        '400':
+          description: Mandatory fields missing or invalid
+        '401':
+          description: User not authenticated
+    get:
+      summary: Get activity list
+      parameters:
+        - in: query
+          name: filter
+          description: Filters (new, trending, recommended)
+          required: false #controllare
+          schema: 
+            type: string
+            enum: [new, trending, recommended]
+        - in: query
+          name: order
+          description: Chronological order (asc or desc)
+          required: false #controllare
+          schema:
+            type: string
+            enum: [asc, desc]
+      responses:
+        '200':
+          description: List of activities obtained
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: "#/components/schemas/ActivityResponse"
+        '204': 
+          description: No activity available for selected filters
+
+  /activities/{id}:
+    get:
+      summary: Get details of an activity
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: 
+            type: string
+      responses:
+        '200':
+          description: Details of the activity obtained
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityResponse"
+        '404':
+          description: Activity not found
+    patch:
+      summary: Partially change an activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityUpdateRequest"
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: 
+            type: string
+      responses:
+        '200':
+          description: Activity updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityResponse"
+        '400': 
+          description: Invalid data
+        '401': 
+          description: User not authenticated
+        '404':
+          description: Activity not found
+    delete:
+      summary: Delete an activity
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200': 
+          description: Activity deleted
+        '401':
+          description: User not authenticated
+        '403':
+          description: User not authorized
+        '404': 
+          description: Activity not found
+  
+  /groups:
+    get:
+      summary: Get list of groups
+      responses:
+        '200': 
+          description: List of groups obtained
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                    $ref: "#/components/schemas/GroupResponse"
+        '204': 
+          description: No groups found
+  
+  /groups/{id}:
+    get:
+      summary: Get the details of a group
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:	
+            type: string
+      responses: 
+        '200': 
+          description: Details of the group obtained
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupResponse"
+        '404': 
+          description: Group not found
+          	
+  /groups/{group_id}/meetings:
+    post:
+      summary: Create a new meeting for a group
+      parameters:
+        - in: path
+          name: group_id
+          required: true
+          schema: 
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeetingCreateRequest"
+      responses:
+        '201':
+          description: Meeting created successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MeetingResponse"
+        '400':
+          description: Invalid data
+        '401':
+          description: User not authenticated
+        '404':
+          description: Group not found
+    get:
+      summary: Get list of meetings of a group
+      parameters:
+        - in: path
+          name: group_id
+          required: true
+          schema: 
+            type: string
+      responses:
+        '200': 
+          description: List of meetings of the group obtained
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeetingResponse"
+        '404': 
+          description: Group not found
+  
+  /groups/{group_id}/meetings/{meeting_id}:
+    get:
+      summary: Get details of a meeting
+      parameters:
+        - in: path
+          name: group_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: meeting_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Details of the meeting obtained
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeetingResponse"
+        '404':
+          description: Group or meeting not found
+    patch:
+      summary: Partially change a meeting
+      parameters:
+        - in: path
+          name: group_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: meeting_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeetingUpdateRequest"
+      responses:
+        '200': 
+          description: Meeting updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeetingResponse"
+        '400':
+          description: Invalid data
+        '401': 
+          description: User not authenticated
+        '403': 
+          description: User not authorized
+        '404': 
+          description: Group or meeting not found
+        '409':
+          description: Meeting cannot be updated (already confirmed/rejected)
+    delete:
+      summary: Delete meeting of a group
+      parameters:
+        - in: path 
+          name: group_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: meeting_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Meeting deleted
+        '401':
+          description: User not Authenticated
+        '403':
+          description: User not Authorized
+        '404':
+          description: Group or meeting not found
+
+
+  /groups/{group_id}/meetings/{meeting_id}/vote:
+    post:
+      summary: Send a vote for a meeting
+      parameters:
+        - in: path
+          name: group_id
+          required: true
+          schema:
+            type: string
+        - in: path 
+          name: meeting_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeetingVoteCreateRequest"
+      responses:
+        '201': 
+          description: Vote created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeetingVoteResponse"
+        '400': 
+          description: Invalid data
+        '401': 
+          description: User not authenticated
+        '403': 
+          description: User not authorized
+        '404': 
+          description: Group or meeting not found
+        '409':
+          description: Vote already sent by user or meeting already confirmed/rejected
+                
+              
+
+
+components:
+  schemas:
+    ActivityCreateRequest:
+      type: object
+      required:
+        - title
+        - tags
+        - duration
+      properties:
+        title:
+          type: string
+          description: Name of the activity
+        description:
+          type: string
+          nullable: true
+          description: Optional description of the activity
+        tags:
+          type: array
+          description: list of tags associated with the activity
+          items:
+            type: string
+          minItems: 1
+        duration: 
+          type: string
+          description: Duration of the activity
+    ActivityResponse:
+      type: object
+      required:
+        - activityId
+        - title
+        - tags
+        - creationDate
+        - duration
+      properties:
+        activityId:
+          type: string
+          description: Unique ID of the activity
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        duration: 
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        creationDate: 
+          type: string
+          format: date-time
+          description: Timestamp of creation
+    ActivityUpdateRequest:
+      type: object
+      description: Partial changes to the activity
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          nullable: true 
+        description: 
+          type: string
+          nullable: true
+        duration:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items: 
+            type: string   #minItems: 1 ??
+
+    MeetingCreateRequest:
+      type: object
+      required:
+        - date
+        - time
+        - place 
+      properties:
+        date:
+          type: string
+          format: date
+        time:
+          type: string
+          format: time
+        place:
+          type: string
+        description:
+          type: string
+          nullable: true
+        minParticipants:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: Minimum participants required
+    MeetingResponse:
+      type: object
+      required:
+        - meetingId
+        - createdBy
+        - date
+        - time
+        - place
+        - status
+        - totalMembers
+        - currentVotes
+        - memberVotes
+      properties:
+        meetingId:
+          type: string
+        date:
+          type: string
+          format: date
+        time:
+          type: string
+          format: time
+        place:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, confirmed, rejected, needsRevision]
+        createdBy: 
+          type: string
+        totalMembers: 
+          type: integer
+          minimum: 1
+        currentVotes: 
+          type: object
+          properties:
+            confirmed:
+              type: integer
+              minimum: 0
+            rejected:
+              type: integer
+              minimum: 0
+            proposedChange: 
+              type: integer
+              minimum: 0
+        memberVotes:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeetingVoteResponse"
+    MeetingUpdateRequest:
+      type: object
+      description: Partial changes to the meeting
+      minProperties: 1
+      properties:
+        date:
+          type: string
+          format: date
+          nullable: true
+        time: 
+          type: string
+          format: time
+          nullable: true
+        place: 
+          type: string
+          nullable: true
+
+    MeetingVoteResponse:
+      type: object
+      description: Answer of a member to a meeting
+      required:
+        - userId
+        - response
+        - respondedAt
+      properties: 
+        userId:
+          type: string
+        response:
+          type: string
+          enum: [confirmed, rejected, proposedChange]
+        changeProposal:
+          type: object
+          nullable: true
+          properties:
+            date:
+              type: string
+              format: date
+              nullable: true
+            time:
+              type: string
+              format: time
+              nullable: true
+            place:
+              type: string
+              nullable: true
+        respondedAt: 
+          type: string
+          format: date-time
+    MeetingVoteCreateRequest: 
+      type: object
+      required:
+        - response
+      properties:
+        response:
+          type: string
+          enum: [confirmed, rejected, proposedChange]
+        changeProposal:
+          type: object
+          nullable: true
+          properties:
+            date:
+              type: string
+              format: date
+              nullable: true
+            time: 
+              type: string
+              format: time
+              nullable: true
+            place:
+              type: string
+              nullable: true
+    
+    
+    GroupResponse:
+      type: object
+      required:
+        - groupId
+        - groupName
+        - tags
+        - members
+        - meetings
+      properties: 
+        groupId:
+          type: string
+          description: Unique ID of the group
+        groupName:
+          type: string
+          description: Name of the group
+        tags:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        members:
+          type: array
+          description: Members of the group
+          items: 
+            type: object
+        meetings:
+          type: array
+          description: Meetings of the group
+          items: 
+              $ref: "#/components/schemas/MeetingResponse"
+        description: 
+          type: string
+          description: Info about the group
+          nullable: true
+        
