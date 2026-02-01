@@ -1,0 +1,16 @@
+import express from 'express';
+import groups from './groups.js';
+import meetings from './meetings.js';
+
+
+const app = express();
+
+// parsing body of request
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// resource routing
+app.use('/api/v1/groups', groups);
+app.use('/api/v1/groups', meetings);
+
+export default app;

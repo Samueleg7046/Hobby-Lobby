@@ -9,122 +9,48 @@ servers:
   - url: http://localhost:8080/api/v1
     description: Localhost
 
-paths: 
-  /activities:
-    post:
-      summary: Create new activity
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: 
-              $ref: "#/components/schemas/ActivityCreateRequest"
-      responses:
-        '201': 
-          description: 'Activity created successfully'
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ActivityResponse"
-        '400':
-          description: Mandatory fields missing or invalid
-        '401':
-          description: User not authenticated
+paths:   
+  /groups/feed:
     get:
-      summary: Get activity list
+      summary: Get public feed of groups
       parameters:
         - in: query
           name: filter
-          description: Filters (new, trending, recommended)
-          required: false #controllare
-          schema: 
-            type: string
-            enum: [new, trending, recommended]
-        - in: query
-          name: order
-          description: Chronological order (asc or desc)
-          required: false #controllare
+          description: Filters for the feed
+          required: false
           schema:
             type: string
+            enum: [new, trending, recommended]
+            default: new
+        - in: query
+          name: order
+          description: Chronological order
+          required: false
+          schema: 
+            type: string
             enum: [asc, desc]
+            default: desc
+        - in: query
+          name: tags
+          description: Filter by specific tags
+          schema:
+            type: string
       responses:
         '200':
-          description: List of activities obtained
-          content:
+          description: List of groups found
+          content: 
             application/json:
               schema:
                 type: array
                 items: 
-                  $ref: "#/components/schemas/ActivityResponse"
+                  $ref: "#/components/schemas/GroupResponse"
         '204': 
-          description: No activity available for selected filters
+          description: No groups available for selected filters
+    
 
-  /activities/{id}:
-    get:
-      summary: Get details of an activity
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: 
-            type: string
-      responses:
-        '200':
-          description: Details of the activity obtained
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ActivityResponse"
-        '404':
-          description: Activity not found
-    patch:
-      summary: Partially change an activity
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ActivityUpdateRequest"
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: 
-            type: string
-      responses:
-        '200':
-          description: Activity updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ActivityResponse"
-        '400': 
-          description: Invalid data
-        '401': 
-          description: User not authenticated
-        '404':
-          description: Activity not found
-    delete:
-      summary: Delete an activity
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '200': 
-          description: Activity deleted
-        '401':
-          description: User not authenticated
-        '403':
-          description: User not authorized
-        '404': 
-          description: Activity not found
-  
   /groups:
     get:
-      summary: Get list of groups
+      summary: Get list of personal groups
       responses:
         '200': 
           description: List of groups obtained
@@ -136,6 +62,25 @@ paths:
                     $ref: "#/components/schemas/GroupResponse"
         '204': 
           description: No groups found
+    post:
+      summary: Create new group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: 
+              $ref: "#/components/schemas/GroupCreateRequest"
+      responses:
+        '201': 
+          description: 'Group created successfully'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupResponse"
+        '400':
+          description: Mandatory fields missing or invalid
+        '401':
+          description: User not authenticated
   
   /groups/{id}:
     get:
@@ -155,6 +100,63 @@ paths:
                 $ref: "#/components/schemas/GroupResponse"
         '404': 
           description: Group not found
+    delete:
+      summary: Delete a group
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Group deleted
+        '403':
+          description: Only the owner can delete the group
+        '404':
+          description: Group not found
+    patch:
+      summary: Partially change a group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupUpdateRequest"
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: 
+            type: string
+      responses:
+        '200':
+          description: Group updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupResponse"
+        '400': 
+          description: Invalid data
+        '401': 
+          description: User not authenticated
+        '404':
+          description: Group not found
+  
+  /groups/{id}/join:
+    post:
+      summary: Join a group
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully joined the group
+        '409':
+          description: Already a member
           	
   /groups/{group_id}/meetings:
     post:
@@ -329,63 +331,40 @@ paths:
 
 components:
   schemas:
-    ActivityCreateRequest:
+    GroupCreateRequest:
       type: object
       required:
-        - title
+        - groupName
         - tags
         - duration
+        - frequency
       properties:
-        title:
+        groupName:
           type: string
-          description: Name of the activity
+          description: Name of the group
         description:
           type: string
           nullable: true
-          description: Optional description of the activity
+          description: Optional description of the group
         tags:
           type: array
-          description: list of tags associated with the activity
+          description: list of tags associated with the group
           items:
             type: string
           minItems: 1
         duration: 
           type: string
-          description: Duration of the activity
-    ActivityResponse:
-      type: object
-      required:
-        - activityId
-        - title
-        - tags
-        - creationDate
-        - duration
-      properties:
-        activityId:
+          description: Duration of the activity proposed by the group
+        frequency:
           type: string
-          description: Unique ID of the activity
-        title:
-          type: string
-        description:
-          type: string
-          nullable: true
-        duration: 
-          type: string
-        tags:
-          type: array
-          items:
-            type: string
-          minItems: 1
-        creationDate: 
-          type: string
-          format: date-time
-          description: Timestamp of creation
-    ActivityUpdateRequest:
+          description: Frequency of the activity proposed by the group
+
+    GroupUpdateRequest:
       type: object
       description: Partial changes to the activity
       minProperties: 1
       properties:
-        title:
+        groupName:
           type: string
           nullable: true 
         description: 
@@ -394,10 +373,69 @@ components:
         duration:
           type: string
           nullable: true
+        frequency:
+          type: string
+          nullable: true
         tags:
           type: array
           items: 
             type: string   #minItems: 1 ??
+
+    GroupResponse:
+      type: object
+      required:
+        - groupId
+        - groupName
+        - tags
+        - creationDate
+        - duration
+        - frequency
+        - members
+        - meetings
+        - isRecruiting
+        - self
+      properties: 
+        groupId:
+          type: string
+          description: Unique ID of the group
+        groupName:
+          type: string
+          description: Name of the group
+        tags:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        isRecruiting:
+          type: boolean
+          description: True if group is looking for members
+        members:
+          type: array
+          description: Members of the group
+          items: 
+            type: object
+          minItems: 1
+        meetings:
+          type: array
+          description: Meetings of the group
+          items: 
+              $ref: "#/components/schemas/MeetingResponse"
+          default: []
+        description: 
+          type: string
+          description: Info about the group
+          nullable: true
+        creationDate: 
+          type: string
+          format: date-time
+          description: Timestamp of creation
+        duration:
+          type: string
+        frequency:
+          type: string
+        self:
+          type: string
+          description: Link to group
 
     MeetingCreateRequest:
       type: object
@@ -422,10 +460,12 @@ components:
           minimum: 1
           nullable: true
           description: Minimum participants required
+
     MeetingResponse:
       type: object
       required:
         - meetingId
+        - groupId
         - createdBy
         - date
         - time
@@ -434,8 +474,11 @@ components:
         - totalMembers
         - currentVotes
         - memberVotes
+        - self
       properties:
         meetingId:
+          type: string
+        groupId:
           type: string
         date:
           type: string
@@ -472,6 +515,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MeetingVoteResponse"
+        self:
+          type: string
+          description: Link to meeting
+
     MeetingUpdateRequest:
       type: object
       description: Partial changes to the meeting
@@ -520,6 +567,7 @@ components:
         respondedAt: 
           type: string
           format: date-time
+
     MeetingVoteCreateRequest: 
       type: object
       required:
@@ -545,38 +593,6 @@ components:
               nullable: true
     
     
-    GroupResponse:
-      type: object
-      required:
-        - groupId
-        - groupName
-        - tags
-        - members
-        - meetings
-      properties: 
-        groupId:
-          type: string
-          description: Unique ID of the group
-        groupName:
-          type: string
-          description: Name of the group
-        tags:
-          type: array
-          items:
-            type: string
-          minItems: 1
-        members:
-          type: array
-          description: Members of the group
-          items: 
-            type: object
-        meetings:
-          type: array
-          description: Meetings of the group
-          items: 
-              $ref: "#/components/schemas/MeetingResponse"
-        description: 
-          type: string
-          description: Info about the group
-          nullable: true
+
+
         
