@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 export const MeetingVoteSchema = new Schema({  // uso schema e non model perché dipendono da meeting
-    user: {
+    userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true 
