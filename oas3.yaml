@@ -50,7 +50,13 @@ paths:
 
   /groups:
     get:
-      summary: Get list of personal groups
+      summary: Get list of personal/all groups
+      parameters:
+        - in: query
+          name: userId
+          schema: 
+            type: string
+          description: "User ID to only show personal groups"
       responses:
         '200': 
           description: List of groups obtained
@@ -376,6 +382,9 @@ components:
         frequency:
           type: string
           nullable: true
+        isRecruiting:
+          type: boolean
+          nullable: true
         tags:
           type: array
           items: 
@@ -393,6 +402,7 @@ components:
         - members
         - meetings
         - isRecruiting
+        - membersCount
         - self
       properties: 
         groupId:
@@ -405,7 +415,6 @@ components:
           type: array
           items:
             type: string
-          minItems: 1
         isRecruiting:
           type: boolean
           description: True if group is looking for members
@@ -414,7 +423,6 @@ components:
           description: Members of the group
           items: 
             type: object
-          minItems: 1
         meetings:
           type: array
           description: Meetings of the group
@@ -433,6 +441,8 @@ components:
           type: string
         frequency:
           type: string
+        membersCount:
+          type: integer
         self:
           type: string
           description: Link to group

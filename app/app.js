@@ -11,6 +11,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // resource routing
 app.use('/api/v1/groups', groups);
-app.use('/api/v1/groups', meetings);
+app.use('/api/v1/groups/:group_id/meetings', meetings);
 
 export default app;
