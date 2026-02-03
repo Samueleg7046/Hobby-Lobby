@@ -109,7 +109,7 @@ router.get('', async (req, res) => {
 
 router.post('', async (req, res) => { // aggiungere codice 401, utente non autenticato
     const { groupName, description, tags, duration, frequency } = req.body;
-    const userId = req.user.id
+    const userId = req.body.userId;
 
     try {
         const newGroup = new Group({
