@@ -1,10 +1,12 @@
 import express from 'express';
+import cors from 'cors';
 import groups from './groups.js';
 import meetings from './meetings.js';
 
 
 const app = express();
 
+app.use(cors());
 // parsing body of request
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
