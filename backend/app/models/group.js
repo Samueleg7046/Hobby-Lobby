@@ -12,6 +12,10 @@ export default mongoose.model('Group', new Schema({
         trim: true,
         default: null
     },
+    imageUrl: {
+        type: String,
+        
+    },
     duration: {
         type: String,
         required: true

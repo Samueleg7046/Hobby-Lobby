@@ -31,7 +31,8 @@ router.get('/feed', async (req, res) => {  // da aggiungere logica per recommend
     const response = groups.map(g => ({
         self: `/api/v1/groups/${g._id}`,
         groupName: g.groupName,
-        description: g.description,
+        description: g.description ?? null,
+        imageUrl: g.imageUrl,
         tags: g.tags,
         membersCount: g.members.length,
         isRecruiting: g.isRecruiting,
@@ -72,6 +73,7 @@ router.get('', async (req, res) => {
         groupName: g.groupName,
         // if description is null/undefined, then null
         description: g.description ?? null,
+        imageUrl: g.imageUrl,
         tags: g.tags,
         duration: g.duration,
         frequency: g.frequency,
@@ -108,7 +110,7 @@ router.get('', async (req, res) => {
 
 
 router.post('', async (req, res) => { // aggiungere codice 401, utente non autenticato
-    const { groupName, description, tags, duration, frequency } = req.body;
+    const { groupName, description, tags, duration, frequency, imageUrl } = req.body;
     const userId = req.body.userId;
 
     try {
@@ -118,6 +120,7 @@ router.post('', async (req, res) => { // aggiungere codice 401, utente non auten
             tags,
             duration,
             frequency,
+            imageUrl,
             createdBy: userId,
             members: [userId],
             isRecruiting: true
@@ -125,7 +128,7 @@ router.post('', async (req, res) => { // aggiungere codice 401, utente non auten
 
         await newGroup.save();
 
-        res.location(`/api/v1/groups/"${newGroup._id}`).status(201).json(newGroup);
+        res.location(`/api/v1/groups/${newGroup._id}`).status(201).json(newGroup);
     } catch (err) {
         res.status(400).json({ errore: err.message });
     }
@@ -150,6 +153,7 @@ router.get('/:id', async (req, res) =>{
         self: `/api/v1/groups/${g._id}`,
         groupName: g.groupName,
         description: g.description ?? null,
+        imageUrl: g.imageUrl,
         tags: g.tags,
         duration: g.duration,
         frequency: g.frequency,
@@ -201,9 +205,10 @@ router.patch('/:id', async (req, res) => {
         if (!group) return res.status(404).json({ error: "Group not found" });
 
         res.status(200).json({
-            self: `/api/v1/groups/$group._id}`,
+            self: `/api/v1/groups/${group._id}`,
             groupName: group.groupName,
             description: group.description,
+            imageUrl: group.imageUrl,
             tags: group.tags,
             duration: group.duration,
             frequency: group.frequency,

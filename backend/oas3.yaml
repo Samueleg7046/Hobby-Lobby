@@ -344,6 +344,7 @@ components:
         - tags
         - duration
         - frequency
+        - imageUrl
       properties:
         groupName:
           type: string
@@ -352,6 +353,9 @@ components:
           type: string
           nullable: true
           description: Optional description of the group
+        imageUrl:
+          type: string
+          description: Image representing the group
         tags:
           type: array
           description: list of tags associated with the group
@@ -385,6 +389,9 @@ components:
         isRecruiting:
           type: boolean
           nullable: true
+        imageUrl:
+          type: string
+          nullable: true
         tags:
           type: array
           items: 
@@ -395,6 +402,7 @@ components:
       required:
         - groupId
         - groupName
+        - imageUrl
         - tags
         - creationDate
         - duration
@@ -411,6 +419,9 @@ components:
         groupName:
           type: string
           description: Name of the group
+        imageUrl:
+          type: string
+          description: Image representing the group
         tags:
           type: array
           items:
