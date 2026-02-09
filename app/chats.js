@@ -1,8 +1,8 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import Chat from '../models/chat.js';
-import Message from '../models/message.js';
-import Notification from '../models/notification.js';
+import Chat from './models/chat.js';
+import Message from './models/message.js';
+import Notification from './models/notification.js';
 
 const router = express.Router();
 

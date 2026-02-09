@@ -3,11 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import User from '../models/user.js';
-import dotenv from 'dotenv';
+import User from './models/user.js';
 
-dotenv.config();
-
+console.log("DEBUG - SECRET_KEY:", process.env.SECRET_KEY);
 const router = express.Router();
 
 // --- CONFIGURAZIONE PASSPORT GOOGLE ---
@@ -68,7 +66,8 @@ router.post('/', async (req, res) => {
             role: 'user',
             isVerified: false
         });
-
+        // Per debug: verifica che la chiave segreta sia letta correttamente
+        console.log("SECRET_KEY LETTA:", process.env.SECRET_KEY);
         const savedUser = await newUser.save();
 
         // SIMULAZIONE INVIO EMAIL

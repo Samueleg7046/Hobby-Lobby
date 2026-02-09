@@ -1,5 +1,5 @@
 import express from 'express';
-import Notification from '../models/notification.js';
+import Notification from './models/notification.js';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
