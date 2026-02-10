@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import groups from './groups.js';
 import meetings from './meetings.js';
 import users from './users.js'; 
@@ -7,6 +8,7 @@ import notifications from './notifications.js';
 
 const app = express();
 
+app.use(cors());
 // parsing body of request
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

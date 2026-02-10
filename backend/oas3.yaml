@@ -462,7 +462,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ActivityResponse'
+                  $ref: '#/components/schemas/GroupResponse'
 
   #/users/{id}/saved/activities/{activityId}
   /users/{id}/saved/activities/{activityId}:
@@ -903,7 +903,6 @@ paths:
           description: Message or Chat not found
 
 # -------------------- SCHEMAS --------------------
-                
 components:
   schemas:
     GroupCreateRequest:
@@ -1170,6 +1169,7 @@ components:
             place:
               type: string
               nullable: true
+
         #USERS SCHEMAS
     UserCreateRequest:
       type: object
@@ -1410,8 +1410,3 @@ components:
           description: List of users who read the message
           items:
             type: string
-
-    
-
-
-        
