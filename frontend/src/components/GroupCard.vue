@@ -1,5 +1,6 @@
 <script setup>
 defineProps({
+    id: String,
     title: String,
     description: String,
     image: String,
@@ -8,11 +9,13 @@ defineProps({
 </script>
 
 <template>
-    <div class="card bg-base-100 shadow-xl w-full border border-base-200 hover:shadow-2xl transition-all duration-300">
+    <router-link
+    :to="'/groups/' + id"
+    class="card bg-base-100 shadow-xl w-full border border-base-200 hover:shadow-2xl transition-all duration-300">
         <figure class="h-64">
             <img
             :src="image"
-            alt="Foto gruppo" 
+            alt="Group photo" 
             class="w-full h-full object-cover"/>
         </figure>
         <div class="card-body">
@@ -41,5 +44,5 @@ defineProps({
                 </button>
             </div>
         </div>
-    </div>
+    </router-link>
 </template>

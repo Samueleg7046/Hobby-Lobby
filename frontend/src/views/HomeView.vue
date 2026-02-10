@@ -56,6 +56,7 @@ onMounted(() => {
         v-else
         v-for="group in groups" 
         :key="group.self"
+        :id="group.self.split('/').pop()"
         :title="group.groupName"
         :description="group.description"
         :image="group.imageUrl"
