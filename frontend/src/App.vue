@@ -3,7 +3,7 @@ import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <header class="bg-base-200 p-4 mb-4 shadow">
+  <header class="bg-base-200 p-4 mb-1 shadow">
     <nav class="container mx-auto flex justify-between">
       <span class="font-bold text-xl">HobbyLobby</span>
       <div>
