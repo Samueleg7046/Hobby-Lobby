@@ -27,6 +27,11 @@ const chatSchema = new mongoose.Schema({
     lastMessage: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Message'
+    },
+
+    relatedGroupId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Group',
     }
 
 }, { timestamps: true });

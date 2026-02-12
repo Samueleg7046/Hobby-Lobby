@@ -14,7 +14,7 @@ export default mongoose.model('Group', new Schema({
     },
     imageUrl: {
         type: String,
-        
+        required: true
     },
     duration: {
         type: String,
@@ -33,6 +33,10 @@ export default mongoose.model('Group', new Schema({
         type: [String],
         required: true,
         validate: v => Array.isArray(v) && v.length > 0
+    },
+    chatId: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'Chat'
     },
     createdBy: { 
         type: Schema.Types.ObjectId, 

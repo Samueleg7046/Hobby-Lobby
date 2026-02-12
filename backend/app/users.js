@@ -155,34 +155,6 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Attività Salvate
-router.put('/:id/saved/activities/:activityId', async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        const activityId = req.params.activityId;
-        if (user.savedActivities.includes(activityId)) {
-            return res.status(409).json({ message: 'Activity already saved' });
-        }
-        user.savedActivities.push(activityId);
-        await user.save();
-        res.status(200).json(user.savedActivities);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-router.delete('/:id/saved/activities/:activityId', async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        user.savedActivities.pull(req.params.activityId);
-        await user.save();
-        res.status(204).send();
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
 
 // Gruppi Salvati
 router.put('/:id/saved/groups/:groupId', async (req, res) => {

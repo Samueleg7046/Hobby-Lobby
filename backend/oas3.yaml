@@ -443,6 +443,7 @@ paths:
           description: User not found
 
   #/users/{id}/saved/activities
+  # DA ELIMINARE
   /users/{id}/saved/activities:
     get:
       summary: Get saved activities
@@ -465,6 +466,7 @@ paths:
                   $ref: '#/components/schemas/GroupResponse'
 
   #/users/{id}/saved/activities/{activityId}
+  # DA ELIMINARE
   /users/{id}/saved/activities/{activityId}:
     put:
       summary: Save an activity
@@ -972,6 +974,7 @@ components:
         - groupName
         - imageUrl
         - tags
+        - chatId
         - creationDate
         - duration
         - frequency
@@ -994,6 +997,10 @@ components:
           type: array
           items:
             type: string
+        chatId:
+          type: string
+          nullable: true
+          description: Chat of the group
         isRecruiting:
           type: boolean
           description: True if group is looking for members
@@ -1359,6 +1366,7 @@ components:
         - chatId
         - chatType
         - participants
+        - relatedGroupId
       properties:
         chatId:
           type: string
@@ -1375,6 +1383,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UserResponse'
+        relatedGroupId:
+          type: string
+          description: Group related to the chat
         lastMessage:
           $ref: '#/components/schemas/MessageResponse'
         unreadCount:

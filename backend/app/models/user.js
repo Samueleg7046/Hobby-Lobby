@@ -42,7 +42,6 @@ const userSchema = new mongoose.Schema({
     phoneNumber: { type: String },
     profilePicture: { type: String, default: '' },
     
-    savedActivities: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Activity' }],
     savedGroups: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Group' }],
     savedFriends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 

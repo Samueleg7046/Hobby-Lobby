@@ -1,5 +1,6 @@
 import express from 'express';
 import Group from './models/group.js';
+import Chat from './models/chat.js';
 
 const router = express.Router();
 
@@ -31,6 +32,8 @@ router.get('/feed', async (req, res) => {  // da aggiungere logica per recommend
     const response = groups.map(g => ({
         self: `/api/v1/groups/${g._id}`,
         groupName: g.groupName,
+        groupId: g._id,
+        chatId: g.chatId,
         description: g.description ?? null,
         imageUrl: g.imageUrl,
         tags: g.tags,
@@ -71,6 +74,7 @@ router.get('', async (req, res) => {
         groupId: g._id,
         self: `/api/v1/groups/${g._id}`,
         groupName: g.groupName,
+        chatId: g.chatId,
         // if description is null/undefined, then null
         description: g.description ?? null,
         imageUrl: g.imageUrl,
@@ -126,6 +130,18 @@ router.post('', async (req, res) => { // aggiungere codice 401, utente non auten
             isRecruiting: true
         });
 
+        const newChat = new Chat({
+            chatType: 'group',
+            participants: [userId],
+            groupName: groupName,
+            groupImage: imageUrl,
+            relatedGroupId: newGroup._id
+        });
+
+        const savedChat = await newChat.save();
+
+        newGroup.chatId = savedChat._id;
+
         await newGroup.save();
 
         res.location(`/api/v1/groups/${newGroup._id}`).status(201).json(newGroup);
@@ -152,6 +168,7 @@ router.get('/:id', async (req, res) =>{
         groupId: g._id,
         self: `/api/v1/groups/${g._id}`,
         groupName: g.groupName,
+        chatId: g.chatId,
         description: g.description ?? null,
         imageUrl: g.imageUrl,
         tags: g.tags,
@@ -190,11 +207,13 @@ router.get('/:id', async (req, res) =>{
 
 router.patch('/:id', async (req, res) => {
     try {
+        // doesn't allow to manually change some fields
         const updates = req.body;
         delete updates._id;
         delete updates.createdBy;
         delete updates.members;
         delete updates.meetings;
+        delete updates.chatId;
 
         const group = await Group.findByIdAndUpdate(
             req.params.id,
@@ -204,9 +223,17 @@ router.patch('/:id', async (req, res) => {
         
         if (!group) return res.status(404).json({ error: "Group not found" });
 
+        // updates groupName both in group and chat
+        if (updates.groupName && group.chatId) {
+            await Chat.findByIdAndUpdate(group.chatId, { 
+                groupName: updates.groupName 
+            });
+        }
+
         res.status(200).json({
             self: `/api/v1/groups/${group._id}`,
             groupName: group.groupName,
+            chatId: group.chatId,
             description: group.description,
             imageUrl: group.imageUrl,
             tags: group.tags,
