@@ -9,7 +9,256 @@ servers:
   - url: http://localhost:8080/api/v1
     description: Localhost
 
-paths:   
+paths: 
+  /places:
+    get:
+      summary: Get list of places
+      responses:
+        '200':
+          description: List of Places obtained
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlaceResponse"
+        '204':
+          description: No places found
+    post:
+      summary: Create new place
+      requestBody:
+        required: true
+        content: 
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceCreateRequest"
+      responses:
+        '201':
+          description: 'Place created successfully'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaceResponse"
+        '400':
+          description: Mandatory fields missing or invalid
+        '401':
+          description: Place already exists
+        
+  /places/{place_id}:
+    get:
+      summary: Get details of a place
+      parameters:
+        - in: path
+          name: place_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Details of the place obtained
+          content:
+             application/json:
+              schema:
+                 $ref: "#/components/schemas/PlaceResponse"
+        '404':
+          description: Place not found
+
+  /places/{place_id}/review:
+    post:
+      summary: Create a new review for a place
+      parameters:
+        - in: path
+          name: place_id
+          required: true
+          schema: 
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceCreateReview"
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlaceReviewResponse"
+        '400':
+          description: Place not found
+        '401':
+          description: User not authenticated
+    get:
+      summary: Get a list of reviews of the place
+      parameters:
+        - in: path
+          name: place_id
+          required: true
+          schema: 
+            type: string
+      responses:
+          '200': 
+            description: List of reviews of the place obtained
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/PlaceReviewResponse"
+          '404': 
+            description: Place not found
+    delete:
+      summary: Delete review of a group
+      parameters:
+        - in: path 
+          name: place_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: review_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Review deleted
+        '401':
+          description: User not Authenticated
+        '403':
+          description: User not Authorized
+        '404':
+          description: Review not found
+
+  /users/{user_id}/flags:
+    post:
+      summary: Create a new flag for the user
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema: 
+              type: string
+      requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlagCreateResponse" 
+      responses:
+          '201':
+            description: Flag created successfully
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/FlagResponse"
+          '400':
+            description: User not found
+          '401':
+            description: Admin not authenticated
+    get:
+      summary: Get list of flags assigned to a user
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema: 
+            type: string
+      responses:
+        '200': 
+          description: List of flags obtained
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlagResponse"
+        '404': 
+          description: User not found
+
+  /places/{place_id}/reviews/{review_id}:
+    get:
+      summary: Get details of a revies
+      parameters:
+        - in: path
+          name: place_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: review_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Details of the meeting obtained
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaceReviewResponse"
+        '404':
+          description: Group or meeting not found
+    patch:
+      summary: Partially change a review
+      parameters:
+        - in: path
+          name: placeID:_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: review_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceReviewUpdate"
+      responses:
+        '200': 
+          description: Meeting updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaceReviewUpdate"
+        '400':
+          description: Invalid data
+        '401': 
+          description: User not authenticated
+        '403': 
+          description: User not authorized
+        '404': 
+          description: Group or meeting not found
+        '409':
+          description: Meeting cannot be updated (already confirmed/rejected)
+    delete:
+      summary: Delete review
+      parameters:
+        - in: path 
+          name: place_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: review_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Meeting deleted
+        '401':
+          description: User not Authenticated
+        '403':
+          description: User not Authorized
+        '404':
+          description: Group or meeting not found
+
   /groups/feed:
     get:
       summary: Get public feed of groups
@@ -907,6 +1156,182 @@ paths:
 # -------------------- SCHEMAS --------------------
 components:
   schemas:
+    PlaceCreateRequest: 
+      type: object
+      required:
+        - placeID
+        - placeName
+        - indirizzo
+        - orarioApertura
+        - orarioChiusura
+      properties:
+        placeID: 
+          type: string
+          description: ID of the place
+        placeName:
+          type: string
+          description: Name of the place
+        attivita:
+          type: string
+          description: activities 
+        tags:
+          type: array
+          description: list of tags associated with the place
+          items:
+            type: string
+          minItems: 1
+        descrizione_luogo:
+          type: string
+          description: description of the place
+        orarioApertura:
+          type: number
+          format: time
+          description: opening hour
+        orarioChiusura:
+          type: number
+          format: time
+          description: closing hour
+        indirizzo:
+          type: string
+          description: address
+
+    PlaceResponse:
+      type: object
+      required: 
+      - placeID
+      - placeName
+      - attivita
+      - tags
+      - descrizione_luogo
+      - orarioApertura
+      - orarioChiusura
+      - indirizzo
+      properties:
+        placeID: 
+          type: string
+          description: ID of the place
+        placeName:
+          type: string
+          description: Name of the place
+        media_recensioni:
+          type: number
+          nullable: true
+          description: avg of all reviews
+        attivita:
+          type: string
+          nullable: true
+          description: activities 
+        tags:
+          type: array
+          description: list of tags associated with the place
+          items:
+            type: string
+          minItems: 1
+        descrizione_luogo:
+          type: string
+          nullable: true
+          description: description of the place
+        orarioApertura:
+          type: number
+          format: time
+          description: opening hour
+        orarioChiusura:
+          type: number
+          format: time
+          description: closing hour
+        indirizzo:
+          type: string
+          description: address
+        problemi:
+          type: array
+          description: list of problems
+          items:
+            type: string
+          nullable: true
+        rev:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/PlaceReviewResponse"
+        
+    PlaceCreateReview:
+      type: object
+      description: Review of a Place you've visited
+      required:
+        - placeID
+        - userID
+        - valutazione
+      properties: 
+        placeID:
+          type: number
+        userID: 
+          type: number
+        description:
+          type: string
+        valutazione: 
+          type: number
+          enum: [1,2,3,4,5]
+
+    PlaceReviewResponse:
+      type: object
+      required:
+        - placeID
+        - userID
+        - valutazione
+        - description
+      properties: 
+        placeID:
+          type: number
+        userID: 
+          type: number
+        description:
+          type: string
+          nullable: true
+        valutazione: 
+          type: number
+          enum: [1,2,3,4,5]
+       
+    PlaceReviewUpdate:
+      type: object
+      minProperties: 1
+      properties: 
+        placeID:
+          type: number
+        userID: 
+          type: number
+        description:
+          type: string
+        valutazione: 
+          type: number
+          enum: [1,2,3,4,5]
+
+    FlagCreateResponse:
+      type: object
+      required:
+        - motivazione
+        - operatore_ID
+        - utente_ID
+      properties:
+        motivazione:
+          type: string
+        operatore_ID:
+         type: number
+        utente_ID:
+         type: number
+
+    FlagResponse:
+      type: object
+      required:
+        - motivazione
+        - operatore_ID
+        - utente_ID
+      properties:
+        motivazione:
+          type: string
+        operatore_ID:
+         type: number
+        utente_ID:
+         type: number
     GroupCreateRequest:
       type: object
       required:
