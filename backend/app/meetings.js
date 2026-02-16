@@ -2,9 +2,42 @@ import express from 'express';
 import Meeting from './models/meeting.js'
 import Group from './models/group.js';
 
-const router = express.Router({mergeParams: true});  
+const router = express.Router({mergeParams: true}); 
 
-router.get('/:group_id/meetings', async (req, res) => {
+const formatMeeting = (m, groupId) => {
+    return {
+        meetingId: m._id,
+        groupId: groupId.toString(),
+        self: `/api/v1/groups/${groupId}/meetings/${m._id}`, 
+        date: m.date,
+        time: m.time,
+        place: m.place,
+        description: m.description ?? null,
+        status: m.status,
+        totalMembers: m.totalMembers,
+        createdBy: m.createdBy,
+
+        currentVotes: {
+            // if currentVotes exists in m, take confirmed, else use 0
+            confirmed: m.currentVotes?.confirmed || 0,
+            rejected: m.currentVotes?.rejected || 0,
+            proposedChange: m.currentVotes?.proposedChange || 0
+        },
+
+        memberVotes: m.memberVotes ? m.memberVotes.map(vote => ({
+            userId: vote.userId,
+            response: vote.response,
+            changeProposal: vote.changeProposal ? {
+                date: vote.changeProposal.date ?? null,
+                time: vote.changeProposal.time ?? null,
+                place: vote.changeProposal.place ?? null
+            } : null,
+            respondedAt: vote.respondedAt
+        })) : []
+    };
+};
+
+router.get('', async (req, res) => {
     const groupId = req.params.group_id;
 
     const groupExists = await Group.exists({ _id: groupId });
@@ -19,43 +52,33 @@ router.get('/:group_id/meetings', async (req, res) => {
         return res.status(204).send();
     }
 
-    const result = meetings.map(m => ({
-        meetingId: m._id,
-        groupId: groupId,
-        self: `/api/v1/groups/${groupId}/meetings/${m._id}`,
-        date: m.date,
-        time: m.time,
-        place: m.place,
-        description: m.description ?? null,
-        status: m.status,
-        totalMembers: m.totalMembers,
-        currentVotes: m.currentVotes,
-        memberVotes: m.memberVotes.map(vote => ({
-            userId: vote.user,
-            response: vote.response,
-            changeProposal: vote.changeProposal ?? null,
-            respondedAt: vote.respondedAt
-        }))
-    }));
+    const result = meetings.map(m => formatMeeting(m, groupId));
     
     res.status(200).json(result);
 });
 
-router.post('/:group_id/meetings', async (req, res) => {   // da aggiungere anche codice 401: utente non autenticato
+router.post('', async (req, res) => {   // da aggiungere anche codice 401: utente non autenticato
     const groupId = req.params.group_id;
 
-    const group = await Group.findById(groupId);
-
-    if (!group) {
-        return res.status(404).json({error: 'Group not found'});
-    }
+    const userId = req.body.userId;  // da cambiare con autenticazione
 
     try {
+        const group = await Group.findById(groupId);
+
+        if (!group) {
+            return res.status(404).json({error: 'Group not found'});
+        }
+
         const newMeeting = new Meeting({
-            ...req.body,      // copia direttamente i dati
+            date: req.body.date,
+            time: req.body.time,
+            place: req.body.place,
+            description: req.body.description,
             group: groupId,
-            createdBy: req.body.userId, //inserire req.user.id, com'è ora è solo per testare
-            totalMembers: group.members.length
+            createdBy: userId, 
+            totalMembers: group.members.length,
+            status: 'pending',
+            currentVotes: { confirmed: 0, rejected: 0, proposedChange: 0 }
         });
 
         const savedMeeting = await newMeeting.save();
@@ -63,13 +86,13 @@ router.post('/:group_id/meetings', async (req, res) => {   // da aggiungere anch
         group.meetings.push(savedMeeting._id);
         await group.save();
 
-        res.status(201).json(savedMeeting)
+        res.location(`/api/v1/groups/${groupId}/meetings/${savedMeeting._id}`).status(201).json(formatMeeting(savedMeeting, groupId));
     } catch (err) {
         res.status(400).json({ error: err.message })
     }
 });
 
-router.get('/:group_id/meetings/:meeting_id', async (req, res) => {
+router.get('/:meeting_id', async (req, res) => {
     const groupId = req.params.group_id;
     const meetingId = req.params.meeting_id;
 
@@ -82,28 +105,15 @@ router.get('/:group_id/meetings/:meeting_id', async (req, res) => {
         return res.status(404).json({ error: 'Meeting not found in this group' });
     }
 
-    const result = {
-        meetingId: meeting._id,
-        groupId: groupId,
-        self: `/api/v1/groups/${groupId}/meetings/${meeting._id}`,
-        date: meeting.date,
-        time: meeting.time,
-        place: meeting.place,
-        description: meeting.description ?? null,
-        status: meeting.status,
-        totalMembers: meeting.totalMembers,
-        currentVotes: meeting.currentVotes,
-        memberVotes: meeting.memberVotes,
-        createdBy: meeting.createdBy
-    }
-
-    res.status(200).json(result);
+    res.status(200).json(formatMeeting(meeting, groupId));
 
 });
 
-router.patch('/:group_id/meetings/:meeting_id', async (req, res) => {
+router.patch('/:meeting_id', async (req, res) => {
     const groupId = req.params.group_id;
     const meetingId = req.params.meeting_id;
+
+    const userId = req.body.userId; // da cambiare con autenticazione
 
     try {
         const meeting = await Meeting.findOne({
@@ -112,15 +122,15 @@ router.patch('/:group_id/meetings/:meeting_id', async (req, res) => {
         });
 
         if (!meeting) {
-            return res.status(404).json({ error: 'Meeting not found in this group' });
+            return res.status(404).json({ error: 'Meeting not found' });
         }
 
         if (meeting.status === 'confirmed' || meeting.status === 'rejected') {   // anche rejected o solo confirmed?
             return res.status(409).json({ error: 'Meeting cannot be updated (already confirmed/rejected)' });
         }
 
-        if (meeting.createdBy.toString() !== req.body.userId) {  // da modificare req.body.userId 
-            return res.status(403).json({ error: 'Only the creator of the meeting can modify it' });
+        if (meeting.createdBy.toString() !== userId) {   
+            return res.status(403).json({ error: 'Only the creator can modify this meeting' });
         }
 
         // aggiungere res.status(401), utente non autenticato
@@ -128,29 +138,34 @@ router.patch('/:group_id/meetings/:meeting_id', async (req, res) => {
         if (req.body.date) meeting.date = req.body.date;
         if (req.body.time) meeting.time = req.body.time;
         if (req.body.place) meeting.place = req.body.place;
+        if (req.body.description !== undefined) meeting.description = req.body.description;
 
         const updateMeeting = await meeting.save();
-        res.status(200).json(updateMeeting);
+        res.status(200).json(formatMeeting(updateMeeting, groupId));
 
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
 });
 
-router.delete('/:group_id/meetings/:meeting_id', async (req, res) => {
+router.delete('/:meeting_id', async (req, res) => {
     // aggiungere 401
 
+    const groupId = req.params.group_id;
+    const meetingId = req.params.meeting_id;
+    const userId = req.body.userId  // da modificare
+
     const meeting = await Meeting.findOne({
-        _id: req.params.meeting_id,
-        group: req.params.group_id
+        _id: meetingId,
+        group: groupId
     });
 
     if (!meeting) {
-        return res.status(404).json({ error: 'Meeting not found in this group' });
+        return res.status(404).json({ error: 'Meeting not found' });
     }
 
-    if (meeting.createdBy.toString() !== req.body.userId) {  // da modificare req.body.userId 
-        return res.status(403).json({ error: 'Only the creator of the meeting can delete it' });
+    if (meeting.createdBy.toString() !== userId) {   
+        return res.status(403).json({ error: 'Only the creator can delete this meeting' });
     }
 
     await meeting.deleteOne();
@@ -158,11 +173,11 @@ router.delete('/:group_id/meetings/:meeting_id', async (req, res) => {
 
 });
 
-router.post('/:group_id/meetings/:meeting_id/vote', async (req, res) => {
+router.post('/:meeting_id/vote', async (req, res) => {
     const groupId = req.params.group_id;
     const meetingId = req.params.meeting_id;
 
-    const { userId, response, changeProposal } = req.body;
+    const { userId, response, changeProposal } = req.body; // userId da modificare
 
     try {
         const meeting = await Meeting.findOne({ 
@@ -173,10 +188,10 @@ router.post('/:group_id/meetings/:meeting_id/vote', async (req, res) => {
         if (!meeting) return res.status(404).json({ error: 'Meeting not found' });
         if (meeting.status !== 'pending') return res.status(409).json({ error: 'Voting is closed' });
 
-        const alreadyVoted = meeting.memberVotes.find(v => v.user.toString() === userId);
+        const alreadyVoted = meeting.memberVotes.find(v => v.userId.toString() === userId);
         if (alreadyVoted) return res.status(409).json({ error: 'User has already voted' });
 
-        let proposalData = { date: null, time: null, place: null };
+        let proposalData = null;
         if (response === 'proposedChange' && changeProposal) {
             proposalData = {
                 date: changeProposal.date || null,
@@ -186,7 +201,7 @@ router.post('/:group_id/meetings/:meeting_id/vote', async (req, res) => {
         }
 
         const newVote = {
-            user: userId,
+            userId: userId,
             response: response,
             changeProposal: proposalData,
             respondedAt: new Date().toISOString()    // In memberVote schema, respondedAt is String
@@ -200,7 +215,12 @@ router.post('/:group_id/meetings/:meeting_id/vote', async (req, res) => {
     
         await meeting.save();
 
-        return res.status(201).json({ message: 'Vote recorded', vote: newVote});
+        return res.status(201).json({ 
+            userId: newVote.userId,
+            response: newVote.response,
+            changeProposal: newVote.changeProposal,
+            respondedAt: newVote.respondedAt
+        });
 
     } catch (err) {
         return res.status(400).json({ error: err.message });

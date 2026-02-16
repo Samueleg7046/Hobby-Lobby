@@ -296,9 +296,16 @@ paths:
         '204': 
           description: No groups available for selected filters
     
+
   /groups:
     get:
-      summary: Get list of personal groups
+      summary: Get list of personal/all groups
+      parameters:
+        - in: query
+          name: userId
+          schema: 
+            type: string
+          description: "User ID to only show personal groups"
       responses:
         '200': 
           description: List of groups obtained
@@ -573,7 +580,580 @@ paths:
           description: Group or meeting not found
         '409':
           description: Vote already sent by user or meeting already confirmed/rejected
-    
+
+# -------------------- USERS --------------------
+  /users:
+    post:
+      summary: Register a new user
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Missing mandatory fields or invalid data
+        '409':
+          description: Username or email already exists
+
+  #/users/{id}
+  /users/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: User ID
+    get:
+      summary: Get user profile details
+      tags:
+        - Users
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          description: User not found
+    patch:
+      summary: Update user profile info (bio, name, hobbies)
+      tags:
+        - Users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: User profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found
+
+  #/users/{id}/profile_picture
+  /users/{id}/profile_picture:
+    post:
+      summary: Upload or change profile picture
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                imageUrl:
+                  type: string
+                  description: URL of the new profile picture
+      responses:
+        '200':
+          description: Profile picture updated
+        '404':
+          description: User not found
+    delete:
+      summary: Remove profile picture
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Profile picture removed
+        '404':
+          description: User not found
+
+  #/users/{id}/saved/activities
+  # DA ELIMINARE
+  /users/{id}/saved/activities:
+    get:
+      summary: Get saved activities
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of saved activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupResponse'
+
+  #/users/{id}/saved/activities/{activityId}
+  # DA ELIMINARE
+  /users/{id}/saved/activities/{activityId}:
+    put:
+      summary: Save an activity
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: activityId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Activity saved successfully
+        '404':
+          description: User or Activity not found
+        '409':
+          description: Activity already saved
+    delete:
+      summary: Remove activity from saved
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: activityId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Activity removed from saved list
+        '404':
+          description: User or Activity not found
+
+  #/users/{id}/saved/groups
+  /users/{id}/saved/groups:
+    get:
+      summary: Get saved groups
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of saved groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupResponse'
+
+  #/users/{id}/saved/groups/{groupId}
+  /users/{id}/saved/groups/{groupId}:
+    put:
+      summary: Save a group
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Group saved successfully
+        '404':
+          description: User or Group not found
+        '409':
+          description: Group already saved
+    delete:
+      summary: Remove group from saved
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Group removed from saved list
+        '404':
+          description: User or Group not found
+
+  #/users/{id}/saved/friends
+  /users/{id}/saved/friends:
+    get:
+      summary: Get saved friends
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of saved friends
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+
+  #/users/{id}/saved/friends/{friendId}
+  /users/{id}/saved/friends/{friendId}:
+    put:
+      summary: Add a friend
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: friendId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Friend added successfully
+        '404':
+          description: User or Friend not found
+        '409':
+          description: Friend already added
+    delete:
+      summary: Remove a friend
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: friendId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Friend removed from list
+        '404':
+          description: User or Friend not found
+
+# -------------------- NOTIFICATIONS --------------------
+  /notifications:
+    get:
+      summary: Get list of notifications
+      tags:
+        - Notifications
+      parameters:
+        - in: query
+          name: read
+          schema:
+            type: boolean
+          required: false
+      responses:
+        '200':
+          description: List of notifications obtained
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponse'
+        '401':
+          description: User not authenticated
+    post:
+      summary: Generate a notification (System/Admin)
+      tags:
+        - Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationCreateRequest'
+      responses:
+        '201':
+          description: Notification created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          description: Missing mandatory fields
+        '401':
+          description: User not authenticated
+
+  #/notifications/{id}
+  /notifications/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: Notification ID
+    get:
+      summary: Get details of a specific notification
+      tags:
+        - Notifications
+      responses:
+        '200':
+          description: Notification details obtained
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: Notification not found
+    patch:
+      summary: Mark notification as read
+      tags:
+        - Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                read:
+                  type: boolean
+                  description: Set to true to mark as read
+      responses:
+        '200':
+          description: Notification updated (marked as read)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: Notification not found
+
+# -------------------- CHATS --------------------
+  /chats:
+    get:
+      summary: Get list of chats
+      tags:
+        - Chats
+      responses:
+        '200':
+          description: List of chats obtained
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatResponse'
+        '401':
+          description: User not authenticated
+    post:
+      summary: Create a new chat
+      tags:
+        - Chats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCreateRequest'
+      responses:
+        '201':
+          description: Chat created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: Missing parameters or invalid data
+        '409':
+          description: Private chat already exists between these users
+
+  #/chats/{chatId}
+  /chats/{chatId}:
+    parameters:
+      - in: path
+        name: chatId
+        required: true
+        schema:
+          type: string
+        description: Chat ID
+    get:
+      summary: Get chat info
+      tags:
+        - Chats
+      responses:
+        '200':
+          description: Chat info obtained
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '404':
+          description: Chat not found
+    patch:
+      summary: Update chat info
+      tags:
+        - Chats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatUpdateRequest'
+      responses:
+        '200':
+          description: Chat updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '403':
+          description: User not authorized
+        '404':
+          description: Chat not found
+    delete:
+      summary: Delete chat or leave group
+      tags:
+        - Chats
+      responses:
+        '204':
+          description: Chat deleted or user left successfully
+        '404':
+          description: Chat not found
+
+  #/chats/{chatId}/messages
+  /chats/{chatId}/messages:
+    parameters:
+      - in: path
+        name: chatId
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get list of messages
+      tags:
+        - Chats
+      parameters:
+        - in: query
+          name: unreadOnly
+          schema:
+            type: boolean
+          required: false
+      responses:
+        '200':
+          description: List of messages obtained
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Chat not found
+    post:
+      summary: Send a message
+      tags:
+        - Chats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageCreateRequest'
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid message content
+        '404':
+          description: Chat not found
+        '500':
+          description: Message sending failed
+
+  #/chats/{chatId}/messages/{messageId}/read
+  /chats/{chatId}/messages/{messageId}/read:
+    patch:
+      summary: Mark message as read
+      tags:
+        - Chats
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: messageId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Message marked as read
+        '404':
+          description: Message or Chat not found
+
+# -------------------- SCHEMAS --------------------
 components:
   schemas:
     PlaceCreateRequest: 
@@ -752,7 +1332,6 @@ components:
          type: number
         utente_ID:
          type: number
-
     GroupCreateRequest:
       type: object
       required:
@@ -760,6 +1339,7 @@ components:
         - tags
         - duration
         - frequency
+        - imageUrl
       properties:
         groupName:
           type: string
@@ -768,6 +1348,9 @@ components:
           type: string
           nullable: true
           description: Optional description of the group
+        imageUrl:
+          type: string
+          description: Image representing the group
         tags:
           type: array
           description: list of tags associated with the group
@@ -798,6 +1381,12 @@ components:
         frequency:
           type: string
           nullable: true
+        isRecruiting:
+          type: boolean
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
         tags:
           type: array
           items: 
@@ -808,13 +1397,16 @@ components:
       required:
         - groupId
         - groupName
+        - imageUrl
         - tags
+        - chatId
         - creationDate
         - duration
         - frequency
         - members
         - meetings
         - isRecruiting
+        - membersCount
         - self
       properties: 
         groupId:
@@ -823,11 +1415,17 @@ components:
         groupName:
           type: string
           description: Name of the group
+        imageUrl:
+          type: string
+          description: Image representing the group
         tags:
           type: array
           items:
             type: string
-          minItems: 1
+        chatId:
+          type: string
+          nullable: true
+          description: Chat of the group
         isRecruiting:
           type: boolean
           description: True if group is looking for members
@@ -836,7 +1434,6 @@ components:
           description: Members of the group
           items: 
             type: object
-          minItems: 1
         meetings:
           type: array
           description: Meetings of the group
@@ -855,6 +1452,8 @@ components:
           type: string
         frequency:
           type: string
+        membersCount:
+          type: integer
         self:
           type: string
           description: Link to group
@@ -1014,4 +1613,247 @@ components:
               type: string
               nullable: true
 
-  
+        #USERS SCHEMAS
+    UserCreateRequest:
+      type: object
+      required:
+        - uniqueName
+        - displayName
+        - email
+        - password
+      properties:
+        uniqueName:
+          type: string
+          description: Unique username for the user
+        displayName:
+          type: string
+          description: Display name of the user
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        birthDate:
+          type: string
+          format: date
+          nullable: true
+        phoneNumber:
+          type: string
+          nullable: true
+
+    UserResponse:
+      type: object
+      required:
+        - userId
+        - uniqueName
+        - displayName
+        - email
+        - role
+      properties:
+        userId:
+          type: string
+          description: Unique identifier for the user
+        uniqueName:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [user, operator]
+        description:
+          type: string
+          nullable: true
+          description: User bio
+        hobbies:
+          type: array
+          items:
+            type: string
+          nullable: true
+        profilePicture:
+          type: string
+          format: uri
+          nullable: true
+        
+    UserUpdateRequest:
+      type: object
+      description: Fields that can be updated
+      properties:
+        displayName:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        phoneNumber:
+          type: string
+          nullable: true
+        hobbies:
+          type: array
+          items:
+            type: string
+          nullable: true
+        profilePicture:
+          type: string
+          format: uri
+          nullable: true
+
+    #NOTIFICATION SCHEMAS
+    NotificationCreateRequest:
+      type: object
+      required:
+        - title
+        - description
+      properties:
+        title:
+          type: string
+          description: Title of the notification
+        description:
+          type: string
+          description: Content of the notification
+        targetUserId:
+          type: string
+          description: ID of the user receiving the notification
+
+    NotificationResponse:
+      type: object
+      required:
+        - notificationId
+        - title
+        - description
+        - timestamp
+        - read
+      properties:
+        notificationId:
+          type: string
+          description: Unique ID of the notification
+        title:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+          description: When the notification was sent
+        read:
+          type: boolean
+          description: True if the user has read the notification
+
+    #CHAT SCHEMAS
+    ChatCreateRequest:
+      type: object
+      required:
+        - chatType
+        - participants
+      properties:
+        chatType:
+          type: string
+          enum: [private, group]
+          description: Type of the chat
+        participants:
+          type: array
+          description: List of User IDs to include
+          items:
+            type: string
+          minItems: 1
+        groupName:
+          type: string
+          description: Required only if chatType is group
+        groupImage:
+          type: string
+          description: URL of the group image
+
+    ChatUpdateRequest:
+      type: object
+      description: Update group details or manage participants
+      properties:
+        groupName:
+          type: string
+        groupImage:
+          type: string
+        participantsAdd:
+          type: array
+          description: List of User IDs to add
+          items:
+            type: string
+        participantsRemove:
+          type: array
+          description: List of User IDs to remove
+          items:
+            type: string
+
+    ChatResponse:
+      type: object
+      required:
+        - chatId
+        - chatType
+        - participants
+        - relatedGroupId
+      properties:
+        chatId:
+          type: string
+        chatType:
+          type: string
+          enum: [private, group]
+        groupName:
+          type: string
+          nullable: true
+        groupImage:
+          type: string
+          nullable: true
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+        relatedGroupId:
+          type: string
+          description: Group related to the chat
+        lastMessage:
+          $ref: '#/components/schemas/MessageResponse'
+        unreadCount:
+          type: integer
+          description: Number of unread messages for the current user
+
+    MessageCreateRequest:
+      type: object
+      required:
+        - content
+        - messageType
+      properties:
+        content:
+          type: string
+          description: Text content or URL of media
+        messageType:
+          type: string
+          enum: [text, image, video]
+          default: text
+
+    MessageResponse:
+      type: object
+      required:
+        - messageId
+        - senderId
+        - content
+        - timestamp
+        - messageType
+      properties:
+        messageId:
+          type: string
+        senderId:
+          type: string
+        content:
+          type: string
+        messageType:
+          type: string
+          enum: [text, image, video]
+        timestamp:
+          type: string
+          format: date-time
+        readBy:
+          type: array
+          description: List of users who read the message
+          items:
+            type: string
