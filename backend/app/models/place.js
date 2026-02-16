@@ -20,12 +20,13 @@ export default mongoose.model('Place', new Schema ({
         },
 
         media_recensioni: {
-            type: int,
+            type: Number,
             default: null
         },
 
         attivita: {
-            type: {String}
+            type: String,
+            dafault: null
         },
 
         tags: {

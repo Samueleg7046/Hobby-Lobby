@@ -1,47 +1,59 @@
 import express from 'express';
 import Place from './models/place.js';
-import User from './models/user.js';
+//import User from './models/user.js';
 import { ReviewSchema } from './models/review.js';
 
 const router = express.Router({mergeParams: true});
 
 //CREAZIONE LUOGO
 
-router.post('/:place_id/places/', async (req, res) => {
+router.post('/places', async (req, res) => {
     try{
         //1. mancato inserimento dei parametri obbligatori
 
-        const {place_id}= req.params;
+       const {
+            placeID,
+            placeName,
+            indirizzo,
+            orarioChiusura,
+            orarioApertura,
+            attivita,
+            tags,
+            descrizione_luogo,    
+       } = req.body;
 
-        const {nome, indirizzo, Chiusura, Apertura, descrizione} = req.body
-
-        if (!nome || !indirizzo || !Apertura || !Chiusura){
+        if (!placeName || !indirizzo || !orarioApertura || !orarioChiusura){
             return res.status(400).json({message: "Inserire dei parametri validi"})
         }
 
         //2. check se il luogo esiste di già
 
-        const existing = await Place.findOne({placeID: place_id});
+        const existing = await Place.findOne({placeID: placeID});
         if (existing) {
             return res.status(401).json({message: "Il luogo indicato e' già registrato"})
         }
 
         //3. Luogo creato con successo
 
-        const newFlag = await Place.create({
-            placeID: place_id,
-            placeName: nome,
-            indirizzo: indirizzo,
-            orarioApertura: Apertura,
-            orarioChiusura: Chiusura,
-            descrizione_luogo: descrizione || ""
+        const newPlace = new Place({
+            placeID,
+            placeName,
+            indirizzo,
+            orarioApertura,
+            orarioChiusura,
+            attivita: attivita || "",
+            tags: tags || [],
+            descrizione_luogo: descrizione_luogo || ""
         });
 
-        res.status(201).json({message: "Luogo creato con successo!"})
+        const savedPlace = await newPlace.save();
+
+        res.status(201).json(savedPlace);
+
         }
 
     catch (error){
-        res.status(500).json({message: "Server Error", error: error.message});
+        res.status(500).json({message: "Server Error", error: error.message });
 
     }    
     
@@ -49,36 +61,21 @@ router.post('/:place_id/places/', async (req, res) => {
 
 //RICERCA LUOGO PER ID
 
-router.get('/:place_id/places', async (req, res) => {
+router.get('/places/:placeID', async (req, res) => {
    
    try{
-    const placeId = req.params.place_id;
+    const placeId = req.params.placeID;
 
     //1. Luogo non trovato
 
-    const p = await Place.findById(placeId).exec();
+    const p = await Place.findById(placeId);
 
     if (!p){
         return res.status(404).json({ message: 'Nessun risultato' });
     }
 
     //2. Luogo trovato
-
-    const result = {
-        placeID: p.placeId,
-        descrizione_luogo: p.descrizione_luogo,
-        placeName: p.placeName,
-        media_recensioni: p.media_recensioni,
-        attivita: p.attivita,
-        tags: p.tags,
-        indirizzo: p.indirizzo,
-        orarioApertura: p.orarioApertura,
-        orarioChiusura: p.orarioChiusura,
-        problemi: p.problemi,
-        rev: p.rev
-        }
-
-    res.status(200).json(result);
+    res.status(200).json(p);
 
    }
 
@@ -129,7 +126,7 @@ router.post ('/:place_id/places/reviews', async (req, res) => {
 
 //ELIMINAZIONE RECENSIONE
 
-router.delete ('/:user_id/places/:place_id/reviews', async (req, res) => {
+router.delete ('/places/:place_id/reviews/:review_id', async (req, res) => {
     try {
         const placeid = req.params.place_id;
         const userid = req.params.user_id;
@@ -155,10 +152,8 @@ router.delete ('/:user_id/places/:place_id/reviews', async (req, res) => {
     }
 });
 
-export default router;
-
 //MODIFICA RECENSIONE
-router.patch('/:user_id/places/:place_id/reviews', async (req, res) => {
+router.patch('/places/:place_id/reviews/:review_id', async (req, res) => {
     try {
     const userid= req.params.user_id;
     const placeid= req.params. place_id;
@@ -185,4 +180,8 @@ router.patch('/:user_id/places/:place_id/reviews', async (req, res) => {
         res.status(400).json({ error: err.message });
     }
 
-})
+});
+
+
+export default router;
+

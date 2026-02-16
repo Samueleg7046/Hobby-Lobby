@@ -1,6 +1,6 @@
 import express from 'express';
-import Flag from './models/flags.js';
-import User from './models/users.js';
+import Flag from './models/flag.js';
+//import User from './models/users.js';
 
 const router = express.Router({mergeParams: true});
 

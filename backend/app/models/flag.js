@@ -1,8 +1,7 @@
 import mongoose from 'mongoose';
-import {Schema} from mongoose;
+const {Schema} = mongoose;
 
-export default mongoose.model('Flag', new Schema (
-    {
+export default mongoose.model('Flag', new Schema ({
         motivazione: {
             type: String,
             required: true,
@@ -26,4 +25,4 @@ export default mongoose.model('Flag', new Schema (
     { 
         timestamps: true 
     }
-))
+));

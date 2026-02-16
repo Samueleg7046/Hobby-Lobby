@@ -2,6 +2,7 @@ import express from 'express';
 import groups from './groups.js';
 import meetings from './meetings.js';
 import places from './places.js';
+//import flags from "./flags.js";
 
 
 const app = express();
@@ -14,6 +15,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1/groups', groups);
 app.use('/api/v1/groups', meetings);
 app.use('/api/v1/places', places);
-app.use('/api/v1/flags', flags);
+//app.use('/api/v1/flags', flags);
 
 export default app;
