@@ -20,7 +20,7 @@ export default mongoose.model('Place', new Schema ({
         },
 
         media_recensioni: {
-            type: Number,
+            type: Number, 
             default: null
         },
 
@@ -61,7 +61,7 @@ export default mongoose.model('Place', new Schema ({
         },
 
         problemi: {
-            type: [Schema.Types.ObjectId],
+            type: [String],
             default: null
         },
 

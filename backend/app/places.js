@@ -84,6 +84,49 @@ router.get('/places/:placeID', async (req, res) => {
    }
 });
 
+//GET LUOGHI IN BASE AI TAG
+
+router.get ('/places', async (req, res) =>{
+    try {
+        
+        const { tagInserito } = req.query;
+        
+        const filter = tagInserito ? { attivita: tagInserito } : {};
+        let places = await Place.find(filter)
+        
+            if (!places || places.lenght === 0) {
+                return res.status(204).send();
+            }
+        
+            const response = places.map(p => ({
+                placeID: p.placeID,
+                self: `/api/v1/places/${p._id}`,
+                placeName: p.placeName,
+                media_recensioni: p.media_recensioni,
+                attivita: p.attivita,
+                tags: p.tags,
+                descrizione_luogo: p. descrizione_luogo,
+                orarioApertura: p. orarioApertura,
+                orarioChiusura: p.orarioChiusura,
+                indirizzo: p.indirizzo,
+                problemi: p.problemi,
+                rev: p.rev ? p.rev.map(r => ({
+                                placeID: r.placeID,
+                                userID: r.userID,
+                                description: r.description,
+                                valutazione: r.valutazione
+                })) : []
+            }));
+        
+            res.status(200).json(response);
+    }
+
+    catch (error){
+        res.status(500).json({message: "Server Error", error: error.message});
+    }
+
+})
+
 //CREAZIONE DI UNA RECENSIONE
 
 router.post ('/:place_id/places/reviews', async (req, res) => {
@@ -95,7 +138,7 @@ router.post ('/:place_id/places/reviews', async (req, res) => {
     const place = await Place.findById(place_id);
 
     if (!place){
-        return res.status(404).json({message: 'Luogo non trovato'});
+        return res.status(404).json({message: 'Luogo non trovato' });
     }
 
     if (val === undefined ){
@@ -181,6 +224,10 @@ router.patch('/places/:place_id/reviews/:review_id', async (req, res) => {
     }
 
 });
+
+
+
+ 
 
 
 export default router;

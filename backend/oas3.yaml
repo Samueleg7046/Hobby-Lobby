@@ -105,31 +105,11 @@ paths:
             content:
               application/json:
                 schema:
-                  $ref: "#/components/schemas/PlaceReviewResponse"
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/PlaceReviewResponse"
           '404': 
             description: Place not found
-    delete:
-      summary: Delete review of a group
-      parameters:
-        - in: path 
-          name: place_id
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: review_id
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Review deleted
-        '401':
-          description: User not Authenticated
-        '403':
-          description: User not Authorized
-        '404':
-          description: Review not found
 
   /users/{user_id}/flags:
     post:
@@ -177,67 +157,9 @@ paths:
         '404': 
           description: User not found
 
-  /places/{place_id}/reviews/{review_id}:
+  /places/{place_id}/review/{review_id}:
     get:
-      summary: Get details of a revies
-      parameters:
-        - in: path
-          name: place_id
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: review_id
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Details of the meeting obtained
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PlaceReviewResponse"
-        '404':
-          description: Group or meeting not found
-    patch:
-      summary: Partially change a review
-      parameters:
-        - in: path
-          name: placeID:_id
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: review_id
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PlaceReviewUpdate"
-      responses:
-        '200': 
-          description: Meeting updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PlaceReviewUpdate"
-        '400':
-          description: Invalid data
-        '401': 
-          description: User not authenticated
-        '403': 
-          description: User not authorized
-        '404': 
-          description: Group or meeting not found
-        '409':
-          description: Meeting cannot be updated (already confirmed/rejected)
-    delete:
-      summary: Delete review
+      summary: Get details of a review
       parameters:
         - in: path 
           name: place_id
@@ -251,13 +173,67 @@ paths:
             type: string
       responses:
         '200':
-          description: Meeting deleted
+          description: Review obtained
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaceReviewResponse"
+        '404':
+          description: Review doesn't exist
+    patch:
+      summary: Partially change a review
+      parameters:
+        - in: path 
+          name: place_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: review_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaceReviewUpdate"
+      responses:
+        '200':
+          description: Review modified
+          content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/PlaceReviewResponse"
+        '404':
+          description: Review doesn't exist
+        '401':
+          description: User not Authenticated
+        '403':
+          description: User not Authorized
+    delete:
+      summary: Delete review of a group
+      parameters:
+        - in: path 
+          name: place_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: review_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Review deleted
         '401':
           description: User not Authenticated
         '403':
           description: User not Authorized
         '404':
-          description: Group or meeting not found
+          description: Review not found
 
   /groups/feed:
     get:
@@ -1156,6 +1132,8 @@ paths:
 # -------------------- SCHEMAS --------------------
 components:
   schemas:
+
+  #PLACE SCHEMAS
     PlaceCreateRequest: 
       type: object
       required:
