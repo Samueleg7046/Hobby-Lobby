@@ -1,5 +1,6 @@
 import express from 'express';
 import Group from './models/group.js';
+import User from './models/user.js'
 import Chat from './models/chat.js';
 
 const router = express.Router();
@@ -42,9 +43,9 @@ router.get('/feed', async (req, res) => {  // da aggiungere logica per recommend
         creationDate: g.createdAt,
         duration: g.duration,
         frequency: g.frequency,
-        // I don't send members and meetings lists, we don't need that for feed
+        // I don't send meetings list, we don't need that for feed
         meetings: [],
-        members: []
+        members: g.members.map(memberId => ({ userId: memberId }))
     }));
 
     res.status(200).json(response);
@@ -62,8 +63,14 @@ router.get('', async (req, res) => {
     // groups is an array of populated groups
     let groups = await Group
         .find(filter)
-        .populate('members', '-password -__v')
-        .populate('meetings')
+        .populate('members', 'displayName uniqueName profilePicture')
+        .populate({
+            path: 'meetings',
+            match: { date: { $gte: new Date().toISOString().split('T')[0] } }, // Only future meetings  ( da vedere come salvare data su db)
+            options: {  
+                sort: { date: 1, time: 1 }, // Show upcoming meetings first 
+            }
+        })
         .exec();
 
     if (!groups || groups.length === 0) {
@@ -87,7 +94,9 @@ router.get('', async (req, res) => {
         members: g.members.map(m => ({
             userId: m._id,
             self: `/api/v1/users/${m._id}`,
-            email: m.email         // altro??Qui
+            displayName: m.displayName,
+            uniqueName: m.uniqueName,
+            profilePicture: m.profilePicture
         })),
         meetings: g.meetings.map(meet => ({
             meetingId: meet._id,
@@ -95,7 +104,7 @@ router.get('', async (req, res) => {
             self: `/api/v1/groups/${g._id}/meetings/${meet._id}`,
             date: meet.date,
             time: meet.time,
-            place: meet.place,
+            placeId: meet.placeId,
             description: meet.description ?? null,
             status: meet.status,
             totalMembers: meet.totalMembers,
@@ -112,6 +121,87 @@ router.get('', async (req, res) => {
     res.status(200).json(response);
 });
 
+// Join group
+router.post('/:id/join', async (req, res) => {
+    const groupId = req.params.id;
+    const { userId } = req.body; // TODO: Prenderlo dal token di auth in futuro
+
+    try {
+        const group = await Group.findById(groupId);
+        if (!group) return res.status(404).json({ error: "Group not found" });
+
+        // Check if already a member
+        if (group.members.includes(userId)) {
+            return res.status(409).json({ error: "User is already a member" });
+        }
+
+        // Update group and chat members and add group to user's groups
+        const updateGroup = Group.findByIdAndUpdate(groupId, { 
+            $addToSet: { members: userId } 
+        });
+
+        const updateUser = User.findByIdAndUpdate(userId, { 
+            $addToSet: { savedGroups: groupId } 
+        });
+
+        const updateChat = Chat.findByIdAndUpdate(group.chatId, { 
+            $addToSet: { participants: userId } 
+        });
+
+        await Promise.all([updateGroup, updateUser, updateChat]);
+
+        res.status(200).json({ message: "Joined successfully", groupId: groupId });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// leave group
+router.delete('/:id/leave', async (req, res) => {
+    const groupId = req.params.id;
+    const { userId } = req.body; // TODO: Auth token
+
+    try {
+        const group = await Group.findById(groupId);
+        if (!group) return res.status(404).json({ error: "Group not found" });
+
+        // Avoid admin leaving group
+        if (group.createdBy.toString() === userId) {
+            return res.status(400).json({ 
+                error: "The group owner cannot leave. Delete the group." 
+            });
+        }
+
+        // Check  if user is member
+        if (!group.members.includes(userId)) {
+            return res.status(400).json({ error: "User is not a member of this group" });
+        }
+
+        // Remove user
+        const updateGroup = Group.findByIdAndUpdate(groupId, { 
+            $pull: { members: userId } 
+        });
+
+        const updateUser = User.findByIdAndUpdate(userId, { 
+            $pull: { savedGroups: groupId } 
+        });
+
+        let updateChat = Promise.resolve();
+        if (group.chatId) {
+            updateChat = Chat.findByIdAndUpdate(group.chatId, { 
+                $pull: { participants: userId } 
+            });
+        }
+
+        await Promise.all([updateGroup, updateUser, updateChat]);
+
+        res.status(200).json({ message: "Left group successfully" });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 router.post('', async (req, res) => { // aggiungere codice 401, utente non autenticato
     const { groupName, description, tags, duration, frequency, imageUrl } = req.body;
@@ -144,7 +234,30 @@ router.post('', async (req, res) => { // aggiungere codice 401, utente non auten
 
         await newGroup.save();
 
-        res.location(`/api/v1/groups/${newGroup._id}`).status(201).json(newGroup);
+        const response = {
+            groupId: newGroup._id,
+            self: `/api/v1/groups/${newGroup._id}`,
+            groupName: newGroup.groupName,
+            chatId: newGroup.chatId,
+            description: newGroup.description ?? null,
+            imageUrl: newGroup.imageUrl,
+            tags: newGroup.tags,
+            duration: newGroup.duration,
+            frequency: newGroup.frequency,
+            isRecruiting: newGroup.isRecruiting,
+            creationDate: newGroup.createdAt,
+            membersCount: 1,
+            members: [{      
+                userId: userId,
+                self: `/api/v1/users/${userId}`,
+                displayName: m.displayName,
+                uniqueName: m.uniqueName,
+                profilePicture: m.profilePicture 
+            }],
+            meetings: [] 
+        };
+
+    res.location(`/api/v1/groups/${newGroup._id}`).status(201).json(response);
     } catch (err) {
         res.status(400).json({ errore: err.message });
     }
@@ -157,7 +270,13 @@ router.get('/:id', async (req, res) =>{
     const g = await Group   
         .findById(groupId)
         .populate('members', '-password -__v')
-        .populate('meetings')
+        .populate({
+            path: 'meetings',
+            match: { date: { $gte: new Date().toISOString().split('T')[0] } }, // Only future meetings  ( da vedere come salvare data su db)
+            options: {  
+                sort: { date: 1, time: 1 }, // Show upcoming meetings first 
+            }
+        })
         .exec();
 
     if (!g) {
@@ -188,7 +307,7 @@ router.get('/:id', async (req, res) =>{
             self: `/api/v1/groups/${g._id}/meetings/${meet._id}`,
             date: meet.date,
             time: meet.time,
-            place: meet.place,
+            placeId: meet.placeId,
             description: meet.description ?? null,
             status: meet.status,
             totalMembers: meet.totalMembers,

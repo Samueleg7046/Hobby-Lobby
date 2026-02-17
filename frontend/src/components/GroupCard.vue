@@ -1,25 +1,69 @@
 <script setup>
-defineProps({
+import { computed } from 'vue';
+import { useRouter } from 'vue-router';
+
+const props = defineProps({
     id: String,
     title: String,
     description: String,
     image: String,
-    tags: Array
-})
+    tags: Array,
+    members: { type: Array, default: () => [] }, 
+    myUserId: String,   // momentaneo
+    createdBy: String
+});
+
+const router = useRouter();
+
+// checks if already member
+const isJoined = computed(() => {
+    if (!props.members) return false;
+
+    // DEBUG: Vediamo cosa c'è dentro per il gruppo a cui ti sei appena iscritto
+    // Sostituisci 'Titolo del Tuo Gruppo' con una parte del nome del gruppo che stai testando
+    if (props.title.includes("NomeDelTuoGruppo")) {
+        console.log(`🔍 DEBUG CARD "${props.title}"`);
+        console.log("Membri ricevuti:", props.members);
+        console.log("Il mio ID:", props.myUserId);
+    }
+    
+    return props.members.some(m => {
+        if (typeof m === 'string') return m === props.myUserId;
+        return (m.userId === props.myUserId) || (m._id === props.myUserId);
+    });
+});
+
+
+// When click on card
+const goToGroup = () => {
+    router.push('/groups/' + props.id);
+};
+
 </script>
 
 <template>
-    <router-link
-    :to="'/groups/' + id"
+    <div @click="goToGroup"
     class="card bg-base-100 shadow-xl w-full border border-base-200 hover:shadow-2xl transition-all duration-300">
+        <!-- group image -->
         <figure class="h-64">
             <img
             :src="image"
             alt="Group photo" 
             class="w-full h-full object-cover"/>
         </figure>
+
+        <!-- group title and description -->
         <div class="card-body">
-            <h2 class="card-title text-2xl">{{ title }}</h2>
+            <div class="flex justify-between items-start gap-2">
+                <h2 class="card-title text-2xl">
+                    {{ title }}
+                </h2>
+                <div v-if="isJoined" class="badge badge-success text-white font-bold gap-1 shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                    SUBSCIBED
+                </div>
+            </div>
+
 
             <p class="text-gray-600">{{ description }}</p>
 
@@ -28,21 +72,6 @@ defineProps({
                     #{{ tag }}
                 </span>
             </div>
-
-            <div class="card-actions justify-end gap-2 pt-4 mt-4 border-t border-base-200">
-                <!-- bottone "<3"-->
-                <button class="btn btn-circle btn-primary text-red-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-[1.2em]"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" /></svg>
-                </button>
-                <!-- bottone "chat"-->
-                <button class="btn btn-circle btn-primary text-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                </button>
-                <!-- bottone "+"-->
-                <button class="btn btn-circle btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                </button>
-            </div>
         </div>
-    </router-link>
+    </div>
 </template>

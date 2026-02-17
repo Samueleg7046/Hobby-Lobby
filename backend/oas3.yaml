@@ -412,6 +412,40 @@ paths:
           description: Successfully joined the group
         '409':
           description: Already a member
+
+  /groups/{id}/leave:
+    delete:
+      summary: Leave a group
+      description: Removes the user from the group members list, the user's saved groups, and the group chat. The group creator cannot leave (must delete the group).
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The group ID
+      # request body is temporary, remove after autentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  description: The ID of the user leaving the group (Temporary, later use Auth Token)
+      responses:
+        '200':
+          description: Successfully left the group
+        '400':
+          description: Bad Request (e.g., User is not a member, or User is the Creator)
+        '404':
+          description: Group not found
+        '500':
+          description: Server error
           	
   /groups/{group_id}/meetings:
     post:
@@ -690,75 +724,6 @@ paths:
           description: Profile picture removed
         '404':
           description: User not found
-
-  #/users/{id}/saved/activities
-  # DA ELIMINARE
-  /users/{id}/saved/activities:
-    get:
-      summary: Get saved activities
-      tags:
-        - Users
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: List of saved activities
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/GroupResponse'
-
-  #/users/{id}/saved/activities/{activityId}
-  # DA ELIMINARE
-  /users/{id}/saved/activities/{activityId}:
-    put:
-      summary: Save an activity
-      tags:
-        - Users
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: activityId
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Activity saved successfully
-        '404':
-          description: User or Activity not found
-        '409':
-          description: Activity already saved
-    delete:
-      summary: Remove activity from saved
-      tags:
-        - Users
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: activityId
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Activity removed from saved list
-        '404':
-          description: User or Activity not found
 
   #/users/{id}/saved/groups
   /users/{id}/saved/groups:
@@ -1332,6 +1297,7 @@ components:
          type: number
         utente_ID:
          type: number
+
     GroupCreateRequest:
       type: object
       required:
@@ -1433,12 +1399,12 @@ components:
           type: array
           description: Members of the group
           items: 
-            type: object
+            type: string
         meetings:
           type: array
-          description: Meetings of the group
+          description: List of upcoming meetings of the group
           items: 
-              $ref: "#/components/schemas/MeetingResponse"
+            $ref: "#/components/schemas/MeetingResponse"
           default: []
         description: 
           type: string
@@ -1463,7 +1429,7 @@ components:
       required:
         - date
         - time
-        - place 
+        - placeId 
       properties:
         date:
           type: string
@@ -1471,8 +1437,8 @@ components:
         time:
           type: string
           format: time
-        place:
-          type: string
+        placeId:
+          type: string 
         description:
           type: string
           nullable: true
@@ -1490,7 +1456,7 @@ components:
         - createdBy
         - date
         - time
-        - place
+        - placeId
         - status
         - totalMembers
         - currentVotes
@@ -1507,7 +1473,7 @@ components:
         time:
           type: string
           format: time
-        place:
+        placeId:
           type: string
         description:
           type: string
@@ -1553,7 +1519,7 @@ components:
           type: string
           format: time
           nullable: true
-        place: 
+        placeId: 
           type: string
           nullable: true
 
@@ -1582,7 +1548,7 @@ components:
               type: string
               format: time
               nullable: true
-            place:
+            placeId:
               type: string
               nullable: true
         respondedAt: 
@@ -1609,7 +1575,7 @@ components:
               type: string
               format: time
               nullable: true
-            place:
+            placeId:
               type: string
               nullable: true
 
