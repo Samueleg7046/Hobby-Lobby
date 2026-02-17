@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { ReviewSchema } from './review.js';
 const { Schema } = mongoose;
 
 
@@ -65,6 +64,8 @@ export default mongoose.model('Place', new Schema ({
             default: null
         },
 
-        rev: [ReviewSchema]
+        rev: {
+             type: [{ type: Schema.Types.ObjectId, ref: 'Review' }]
+        }
     }
 ));
