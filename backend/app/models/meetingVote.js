@@ -21,8 +21,9 @@ export const MeetingVoteSchema = new Schema({  // uso schema e non model perché
             type: String,
             default: null
         },
-        place: {            // Da modificare quando aggiungiamo luoghi
-            type: String,
+        placeId: {           
+            type: Schema.Types.ObjectId,
+            ref: 'Place',
             default: null
         }
     },

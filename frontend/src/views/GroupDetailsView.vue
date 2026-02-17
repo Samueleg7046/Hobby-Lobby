@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 // To read groupId from URL
@@ -7,6 +7,36 @@ const route = useRoute();
 
 const group = ref(null);
 const loading = ref(true);  
+const joinLoading = ref(false);
+
+// info about joined/left groups
+const showToast = ref(false);
+const toastMessage = ref('');
+const toastType = ref('success');
+
+const myUserId = "6988e6a7c5caf3ad6a3af73b" // momentaneo
+
+// computed keeps isJoined updated
+const isJoined = computed(() => {
+    if (!group.value || !group.value.members) return false;
+    
+    return group.value.members.some(m => {
+        if (typeof m === 'string') return m === myUserId;
+        return m.userId === myUserId || m._id === myUserId;
+    });
+});
+
+// function that shows info about joined/left groups
+const triggerToast = (message, type = 'success') => {
+    toastMessage.value = message;
+    toastType.value = type;
+    showToast.value = true;
+    
+    // hide after 3 seconds
+    setTimeout(() => {
+        showToast.value = false;
+    }, 3000);
+};
 
 const fetchGroupData = async () => {
     try {
@@ -20,6 +50,45 @@ const fetchGroupData = async () => {
         console.error(err);
     } finally {
         loading.value = false;
+    }
+};
+
+// function for button "+"
+const handleJoin = async () => {
+    if (joinLoading.value || !group.value) return;
+    joinLoading.value = true;
+
+    const action = isJoined.value ? 'leave' : 'join';
+    const method = isJoined.value ? 'DELETE' : 'POST';
+
+    try {
+        const response = await fetch(`http://localhost:8080/api/v1/groups/${group.value.groupId}/${action}`, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: myUserId })
+        });
+
+        if (!response.ok) {
+            const errJson = await response.json().catch(() => ({}));
+            throw new Error(errJson.error || "Errore operazione")
+        }
+
+        if (action === 'join') {
+            group.value.members.push({ userId: myUserId });
+            triggerToast("You joined the group!", "success");
+        } else { // remove id from group
+            group.value.members = group.value.members.filter(m => {
+                const id = (typeof m === 'string') ? m : (m.userId || m._id);
+                return id !== myUserId;
+            });
+            triggerToast("You left the group", "info");
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Errore: " + error.message);
+    } finally {
+        joinLoading.value = false;
     }
 };
 
@@ -59,8 +128,17 @@ onMounted(() => {
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                             </button>
                             <!-- bottone "+"-->
-                            <button class="btn btn-circle bg-white btn-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                            <button @click="handleJoin" class="btn btn-circle transition-all duration-300 btn-primary"
+                            :class="isJoined ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-white '"
+                            :disabled="joinLoading"
+                            >
+                                <span v-if="joinLoading" class="loading loading-spinner loading-xs"></span>
+
+                                <svg v-else-if="isJoined" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                 </svg>
+
+                                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                             </button>
                         </div>
                     </div>
@@ -68,6 +146,7 @@ onMounted(() => {
             </div>
         </div>
         <div class="max-w-6xl mx-auto px-4 mt-8 grid grid-cols-3 gap-8">
+            <!-- description card -->
             <div class="col-span-2 space-y-6">
                 <div class="card bg-base-100 shadow-xl p-6">
                     <h2 class="text-2xl font-bold mb-4">Description</h2>
@@ -77,6 +156,7 @@ onMounted(() => {
                 </div>
             </div>
 
+            <!-- details card -->
             <div class="space-y-6">
                 <div class="card bg-base-100 shadow-xl p-6">
                     <h3 class="font-bold text-gray-500 text-sm mb-4">Details</h3>
@@ -104,5 +184,16 @@ onMounted(() => {
 
     <div v-else class="min-h-screen flex justify-center items-center">
         <span class="loading loading-spinner loading-lg"></span>
+    </div>
+
+    <!-- toast for info about joined/left group-->
+    <div v-if="showToast" class="toast toast-bottom toast-end z-50">
+        <div class="alert shadow-lg" :class="toastType === 'success' ? 'alert-success text-white' : 'alert-info text-white'">
+            <svg v-if="toastType === 'success'" xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            
+            <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+
+            <span>{{ toastMessage }}</span>
+        </div>
     </div>
 </template>

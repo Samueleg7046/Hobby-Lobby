@@ -21,8 +21,9 @@ export default mongoose.model('Meeting', new Schema({
         type: String,
         required: true
     },
-    place: {       // Da modificare quando aggiungiamo luoghi
-        type: String,
+    placeId: {       
+        type: Schema.Types.ObjectId,
+        ref: 'Place',
         required: true
     },
     description: {

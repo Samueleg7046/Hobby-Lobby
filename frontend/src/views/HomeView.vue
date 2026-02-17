@@ -1,14 +1,17 @@
 <script setup>
 import GroupCard from '../components/GroupCard.vue';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onActivated } from 'vue';
 
 const groups = ref([]);
 const loading = ref(true);
 const error = ref(null);
 
+const myUserId = "6988e6a7c5caf3ad6a3af73b" // momentaneo
+
 async function fetchGroups() {
   try {
     loading.value = true;
+    error.value = null;
 
     const response = await fetch('http://localhost:8080/api/v1/groups/feed');
 
@@ -19,6 +22,9 @@ async function fetchGroups() {
   const data = await response.json();
 
   groups.value = data;
+
+  // DEBUG: Controlla se il backend ci sta mandando i membri!
+  console.log("Gruppi caricati:", data);
   } catch (err) {
     console.error("Fetch error: ", err);
     error.value = "Failed to load groups."
@@ -29,6 +35,11 @@ async function fetchGroups() {
 
 onMounted(() => {
   fetchGroups();
+});
+
+// rafresh data when coming back to this page
+onActivated(() => {
+    fetchGroups();
 });
 </script>
 
@@ -70,6 +81,8 @@ onMounted(() => {
             :description="group.description"
             :image="group.imageUrl"
             :tags="group.tags" 
+            :members="group.members"
+            :myUserId="myUserId"
           />
         </div>
       </div>
