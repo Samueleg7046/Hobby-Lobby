@@ -134,24 +134,14 @@ router.post('/:id/join', async (req, res) => {
         if (group.members.includes(userId)) {
             return res.status(409).json({ error: "User is already a member" });
         }
-
-        // 1. Aggiungi utente ai MEMBRI DEL GRUPPO
         const updateGroup = Group.findByIdAndUpdate(groupId, { 
             $addToSet: { members: userId } 
         });
-
-        // 2. Aggiungi utente alla CHAT
         const updateChat = Chat.findByIdAndUpdate(group.chatId, { 
             $addToSet: { participants: userId } 
         });
-
-        // NOTA: Ho rimosso l'aggiornamento di 'savedGroups' dell'utente.
-        // Ora l'iscrizione e il salvataggio nei preferiti sono cose separate.
-
         await Promise.all([updateGroup, updateChat]);
-
         res.status(200).json({ message: "Joined successfully", groupId: groupId });
-
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -177,25 +167,16 @@ router.delete('/:id/leave', async (req, res) => {
         if (!group.members.includes(userId)) {
             return res.status(400).json({ error: "User is not a member of this group" });
         }
-
-        // 1. Rimuovi dai MEMBRI DEL GRUPPO
         const updateGroup = Group.findByIdAndUpdate(groupId, { 
             $pull: { members: userId } 
         });
-
-        // 2. Rimuovi dalla CHAT
         let updateChat = Promise.resolve();
         if (group.chatId) {
             updateChat = Chat.findByIdAndUpdate(group.chatId, { 
                 $pull: { participants: userId } 
             });
         }
-
-        // NOTA: Ho rimosso la rimozione da 'savedGroups'. 
-        // Se l'avevi nei preferiti, lì rimane anche se esci dal gruppo.
-
         await Promise.all([updateGroup, updateChat]);
-
         res.status(200).json({ message: "Left group successfully" });
 
     } catch (err) {
@@ -203,7 +184,7 @@ router.delete('/:id/leave', async (req, res) => {
     }
 });
 
-router.post('', async (req, res) => { // aggiungere codice 401, utente non autenticato
+router.post('', async (req, res) => {
     const { groupName, description, tags, duration, frequency, imageUrl } = req.body;
     const userId = req.body.userId;
 

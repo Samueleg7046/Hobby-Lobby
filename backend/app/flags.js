@@ -10,23 +10,18 @@ router.post ('/:user_id/:admin_id/flags', async (req, res) => {
         const adminid = req.params.admin_id;
 
         const userExists= await User.findById(userid);
-
         if (!userExists){
             return res.status(404).json({message: 'Utente non trovato'})
         }
-
         const adminExists= await User.findById(adminid);
-
         if (!adminExists){
             return res.status(404).json({message: 'Mancata autenticazione'})
         }
-
         const {motivazione, operatore_id, user_id} = req.body;
-
         if (!motivazione){
             return res.status(400).json({message: 'Mancata motivazione'})
         }
-        
+
         const newFlag = await Flag.create({
             motivazione: req.body.motivazione,
             operatore_id:adminid,
