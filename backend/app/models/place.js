@@ -3,14 +3,6 @@ const { Schema } = mongoose;
 
 
 export default mongoose.model('Place', new Schema ({
-        placeID: {
-            type: String,
-            unique: true,
-            required: true,
-            maxLenght: 20,
-            trim: true
-        },
-
         placeName: {
             type: String,
             required: true,

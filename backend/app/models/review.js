@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 export default mongoose.model('Review', new Schema({
 
        placeID: {
-            type: Number,
+            type: Schema.Types.ObjectId,
             ref: 'Place',
             required: true
        },

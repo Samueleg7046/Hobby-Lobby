@@ -6,12 +6,9 @@ const router = express.Router({mergeParams: true});
 
 //CREAZIONE LUOGO
 
-router.post('/places', async (req, res) => {
-    try{
-        //1. mancato inserimento dei parametri obbligatori
+router.post('', async (req, res) => {
 
-       const {
-            placeID,
+    const {
             placeName,
             indirizzo,
             orarioChiusura,
@@ -21,21 +18,23 @@ router.post('/places', async (req, res) => {
             descrizione_luogo,    
        } = req.body;
 
+    try{
+        //1. mancato inserimento dei parametri obbligatori
+
         if (!placeName || !indirizzo || !orarioApertura || !orarioChiusura){
             return res.status(400).json({message: "Inserire dei parametri validi"})
         }
 
-        //2. check se il luogo esiste di già
+        //2. Il luogo esiste già
 
-        const existing = await Place.findOne({placeID: placeID});
-        if (existing) {
-            return res.status(401).json({message: "Il luogo indicato e' già registrato"})
+        const existingPlace = await Place.findOne({ placeName });
+        if (existingPlace) {
+            return res.status(409).json({ message: "Un luogo con questo nome esiste già" });
         }
 
         //3. Luogo creato con successo
 
         const newPlace = new Place({
-            placeID,
             placeName,
             indirizzo,
             orarioApertura,
@@ -45,9 +44,23 @@ router.post('/places', async (req, res) => {
             descrizione_luogo: descrizione_luogo || ""
         });
 
-        const savedPlace = await newPlace.save();
+        await newPlace.save();
 
-        res.status(201).json(savedPlace);
+        const savedPlace = {
+            placeID: newPlace._id,
+            self: `/api/v1/places/${newPlace._id}`,
+            placeName: newPlace.placeName,
+            media_recensioni: "",
+            indirizzo: newPlace.indirizzo,
+            orarioApertura: newPlace.orarioApertura,
+            orarioChiusura: newPlace.orarioChiusura,
+            attivita: newPlace.attivita || "",
+            problemi: [],
+            tags: newPlace.tags || [],
+            descrizione_luogo: newPlace.descrizione_luogo || ""
+        };
+
+        res.location(`/api/v1/places/${newPlace._id}`).status(201).json(savedPlace);
 
         }
 
@@ -60,7 +73,7 @@ router.post('/places', async (req, res) => {
 
 //RICERCA LUOGO PER ID
 
-router.get('/places/:placeID', async (req, res) => {
+router.get('/:placeID', async (req, res) => {
    
    try{
     const placeId = req.params.placeID;
@@ -83,9 +96,9 @@ router.get('/places/:placeID', async (req, res) => {
    }
 });
 
-//GET LUOGHI IN BASE AI TAG
+//GET LISTA DI LUOGHI
 
-router.get ('/places', async (req, res) =>{
+router.get ('', async (req, res) =>{
     try {
         
         const { tagInserito } = req.query;
