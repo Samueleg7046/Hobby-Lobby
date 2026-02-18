@@ -11,7 +11,7 @@ const formatMeeting = (m, groupId) => {
         self: `/api/v1/groups/${groupId}/meetings/${m._id}`, 
         date: m.date,
         time: m.time,
-        placeId: m.placeId,
+        place: m.place,
         description: m.description ?? null,
         status: m.status,
         totalMembers: m.totalMembers,
@@ -34,7 +34,7 @@ const formatMeeting = (m, groupId) => {
             changeProposal: vote.changeProposal ? {
                 date: vote.changeProposal.date ?? null,
                 time: vote.changeProposal.time ?? null,
-                placeId: vote.changeProposal.placeId ?? null
+                place: vote.changeProposal.place ?? null
             } : null,
             respondedAt: vote.respondedAt
         })) : []
@@ -51,7 +51,6 @@ router.get('', async (req, res) => {
     }
 
     const meetings = await Meeting.find({ group: groupId })
-        .populate('placeId')
         .populate('createdBy', 'displayName uniqueName profilePicture')
         .sort({ date: 1, time: 1 });
     
@@ -79,7 +78,7 @@ router.post('', async (req, res) => {   // da aggiungere anche codice 401: utent
         const newMeeting = new Meeting({
             date: req.body.date,
             time: req.body.time,
-            placeId: req.body.placeId,
+            place: req.body.place,
             description: req.body.description,
             group: groupId,
             createdBy: userId, 
@@ -89,6 +88,8 @@ router.post('', async (req, res) => {   // da aggiungere anche codice 401: utent
         });
 
         const savedMeeting = await newMeeting.save();
+
+        await savedMeeting.populate('createdBy', 'displayName profilePicture');   // non ho capito se serve o no 
 
         group.meetings.push(savedMeeting._id);
         await group.save();
@@ -106,7 +107,7 @@ router.get('/:meeting_id', async (req, res) => {
     const meeting = await Meeting.findOne({
         _id: meetingId,
         group: groupId
-    }).populate('placeId');
+    });
 
     if (!meeting) {
         return res.status(404).json({ error: 'Meeting not found in this group' });
@@ -144,7 +145,7 @@ router.patch('/:meeting_id', async (req, res) => {
 
         if (req.body.date) meeting.date = req.body.date;
         if (req.body.time) meeting.time = req.body.time;
-        if (req.body.placeId) meeting.placeId = req.body.placeId;
+        if (req.body.place) meeting.place = req.body.place;
         if (req.body.description !== undefined) meeting.description = req.body.description;
 
         const updateMeeting = await meeting.save();
@@ -193,6 +194,14 @@ router.post('/:meeting_id/vote', async (req, res) => {
     const { userId, response, changeProposal } = req.body; // userId da modificare
 
     try {
+        const group = await Group.findById(groupId);
+        if (!group) return res.status(404).json({ error: "Group not found" });
+
+        // Check if user is member
+        if (!group.members.includes(userId)) {
+            return res.status(403).json({ error: "Only members can vote!" });
+        }
+
         const meeting = await Meeting.findOne({ 
             _id: meetingId,
             group: groupId        
@@ -209,7 +218,7 @@ router.post('/:meeting_id/vote', async (req, res) => {
             proposalData = {
                 date: changeProposal.date || null,
                 time: changeProposal.time || null, 
-                placeId: changeProposal.placeId || null
+                place: changeProposal.place || null
             };
         }
 

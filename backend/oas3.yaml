@@ -1429,7 +1429,7 @@ components:
       required:
         - date
         - time
-        - placeId 
+        - place
       properties:
         date:
           type: string
@@ -1437,7 +1437,7 @@ components:
         time:
           type: string
           format: time
-        placeId:
+        place:
           type: string 
         description:
           type: string
@@ -1456,7 +1456,7 @@ components:
         - createdBy
         - date
         - time
-        - placeId
+        - place
         - status
         - totalMembers
         - currentVotes
@@ -1473,7 +1473,7 @@ components:
         time:
           type: string
           format: time
-        placeId:
+        place:
           type: string
         description:
           type: string
@@ -1519,7 +1519,7 @@ components:
           type: string
           format: time
           nullable: true
-        placeId: 
+        place: 
           type: string
           nullable: true
 
@@ -1548,7 +1548,7 @@ components:
               type: string
               format: time
               nullable: true
-            placeId:
+            place:
               type: string
               nullable: true
         respondedAt: 
@@ -1575,7 +1575,7 @@ components:
               type: string
               format: time
               nullable: true
-            placeId:
+            place:
               type: string
               nullable: true
 

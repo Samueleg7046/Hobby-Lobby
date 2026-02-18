@@ -26,9 +26,9 @@ router.get('/feed', async (req, res) => {  // da aggiungere logica per recommend
         groups.sort((a, b) => b.createdAt - a.createdAt);
     }
 
-    if (!groups || groups.length === 0) {
-        return res.status(204).end();
-    }
+        if (!groups || groups.length === 0) {
+            return res.status(200).json([]);
+        }
 
     const response = groups.map(g => ({
         self: `/api/v1/groups/${g._id}`,
@@ -208,6 +208,9 @@ router.post('', async (req, res) => { // aggiungere codice 401, utente non auten
     const userId = req.body.userId;
 
     try {
+        const user = await User.findById(userId);
+        if (!user) throw new Error("User not found");
+
         const newGroup = new Group({
             groupName: groupName,
             description, 
@@ -250,16 +253,16 @@ router.post('', async (req, res) => { // aggiungere codice 401, utente non auten
             members: [{      
                 userId: userId,
                 self: `/api/v1/users/${userId}`,
-                displayName: m.displayName,
-                uniqueName: m.uniqueName,
-                profilePicture: m.profilePicture 
+                displayName: user.displayName,
+                uniqueName: user.uniqueName,
+                profilePicture: user.profilePicture 
             }],
             meetings: [] 
         };
 
-    res.location(`/api/v1/groups/${newGroup._id}`).status(201).json(response);
+        res.location(`/api/v1/groups/${newGroup._id}`).status(201).json(response);
     } catch (err) {
-        res.status(400).json({ errore: err.message });
+        res.status(400).json({ error: err.message });
     }
 });
 
@@ -294,14 +297,15 @@ router.get('/:id', async (req, res) =>{
         duration: g.duration,
         frequency: g.frequency,
         isRecruiting: g.isRecruiting,
+        createdBy: g.createdBy,
         creationDate: g.createdAt,
         membersCount: g.members.length,
         members: g.members.map(m => ({
             userId: m._id,
             self: `/api/v1/users/${m._id}`,
-            email: m.email         //altro??
+            email: m.email        
         })),
-        meetings: g.meetings.map(meet => ({
+        meetings: g.meetings ? g.meetings.map(meet => ({
             meetingId: meet._id,
             groupId: g._id,
             self: `/api/v1/groups/${g._id}/meetings/${meet._id}`,
@@ -318,7 +322,7 @@ router.get('/:id', async (req, res) =>{
                 changeProposal: vote.changeProposal ?? null,
                 respondedAt: vote.respondedAt
             })) : []
-        }))
+        })) : []
     };
 
     return res.status(200).json(result);
