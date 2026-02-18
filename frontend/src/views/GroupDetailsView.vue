@@ -17,6 +17,7 @@ const toastMessage = ref('');
 const toastType = ref('success');
 
 const myUserId = "6988e6a7c5caf3ad6a3af73b" // momentaneo
+//const myUserId = "69959df4637effcfa2ea9fa1" //momentaneo
 
 const newMeeting = ref({
     date: '',
@@ -283,6 +284,7 @@ onMounted(() => {
                             :meeting="meeting"
                             :isCreator="isCreator"
                             :myUserId="myUserId"
+                            :isMember="isJoined"
                             @vote="handleVote"
                             @confirm="(id) => handleStatusUpdate(id, 'confirmed')"
                             @reject="(id) => handleStatusUpdate(id, 'rejected')"

@@ -7,6 +7,7 @@ const loading = ref(true);
 const error = ref(null);
 
 const myUserId = "6988e6a7c5caf3ad6a3af73b" // momentaneo
+//const myUserId = "69959df4637effcfa2ea9fa1" //momentaneo
 
 async function fetchGroups() {
   try {

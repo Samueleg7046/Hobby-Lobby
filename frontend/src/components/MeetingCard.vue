@@ -4,7 +4,8 @@ import { computed, ref } from 'vue';
 const props = defineProps({
     meeting: Object,
     isCreator: Boolean, // True if logged user is admin
-    myUserId: String  // momentaneo
+    myUserId: String,  // momentaneo
+    isMember: Boolean
 });
 
 const emit = defineEmits(['vote', 'confirm', 'reject', 'delete', 'edit']);
@@ -33,7 +34,7 @@ const proposalsCount = computed(() => {
 
 // Shows proposed changes
 const changeProposalsList = computed(() => {
-    return props.meeting.memberVotes.filter(v => v.response === 'proposedChange' && v.changeProposal) || [];
+    return (props.meeting.memberVotes || []).filter(v => v.response === 'proposedChange' && v.changeProposal);
 });
 
 // --- For user ---
@@ -70,8 +71,6 @@ const deleteMeeting = () => emit('delete', props.meeting.meetingId);
             'bg-error': isRejected,
             'bg-warning': isPending
         }"></div>
-        <!--DEBUG-->
-<pre class="text-xs bg-gray-100 p-2">{{ meeting }}</pre>
         <div class="card-body p-5">
             <div class="flex justify-between items-start">
                 <div class="flex gap-4">
@@ -118,8 +117,8 @@ const deleteMeeting = () => emit('delete', props.meeting.meetingId);
                     <div v-for="(prop, idx) in changeProposalsList" :key="idx" class="text-xs bg-white p-2 rounded border"> 
                         <strong>Proposal:</strong>
                         <span v-if="prop.changeProposal.date"> date: {{ prop.changeProposal.date }} </span>
-                        <span v-if="prop.changeProposal.time">time: {{ prop.changeProposal.time }} </span>
-                        <span v-if="prop.changeProposal.place">place: {{ prop.changeProposal.place }}</span>
+                        <span v-if="prop.changeProposal.time"> time: {{ prop.changeProposal.time }} </span>
+                        <span v-if="prop.changeProposal.place"> place: {{ prop.changeProposal.place }}</span>
                     </div>
                 </div>
             </div>
@@ -144,35 +143,46 @@ const deleteMeeting = () => emit('delete', props.meeting.meetingId);
 
             <div v-else>
                 <div v-if="isPending">
-                    <div v-if="!isProposing" class="flex justify-end gap-2">
-                        <button @click="handleVote('rejected')" 
-                            class="btn btn-sm" :class="myVote === 'rejected' ? 'btn-primary bg-rose-400 hover:bg-rose-500 px-2 text-white' : 'btn-ghost px-2'">
-                            Reject
-                        </button>
-                        <button @click="isProposing = true" 
-                            class="btn btn-sm" :class="myVote === 'proposedChange' ? 'btn-primary bg-yellow-400 hover:bg-yellow-500 px-2' : 'btn-ghost px-2'">
-                            Propose Change
-                        </button>
-                        <button @click="handleVote('confirmed')" 
-                            class="btn btn-sm" :class="myVote === 'confirmed' ? 'btn-primary bg-green-400 hover:bg-green-500 px-2 text-white' : 'btn-outline bg-green-400 hover:bg-green-500 px-2'">
-                            Confirm
-                        </button>
+
+                    <div v-if="!isMember" class="text-center text-xs text-gray-400 italic py-2">
+                        Join the group to vote in this poll.
                     </div>
 
-                    <div v-else class="bg-base-200 p-3 rounded-lg animate-fade-in">
-                        <p class="text-sm font-bold mb-2">What would you like to change?</p>
-                        <div class="grid grid-cols-2 gap-2 mb-2">
-                            <input v-model="proposalForm.date" type="date" class="input input-sm input-bordered w-full">
-                            <input v-model="proposalForm.time" type="time" class="input input-sm input-bordered w-full">
+                    <div v-else>
+                        <div v-if="!isProposing" class="flex justify-end gap-2">
+                            <span v-if="myVote" class="text-xs text-gray-500 mr-2">
+                                You voted: 
+                            </span>
+
+                            <button @click="handleVote('rejected')" :disabled="!!myVote" 
+                                class="btn btn-sm" :class="myVote === 'rejected' ? 'btn-primary bg-rose-400 hover:bg-rose-500 px-2 text-white' : 'btn-ghost px-2'">
+                                Reject
+                            </button>
+                            <button @click="isProposing = true" :disabled="!!myVote" 
+                                class="btn btn-sm" :class="myVote === 'proposedChange' ? 'btn-primary bg-yellow-400 hover:bg-yellow-500 px-2' : 'btn-ghost px-2'">
+                                Propose Change
+                            </button>
+                            <button @click="handleVote('confirmed')" :disabled="!!myVote"
+                                class="btn btn-sm" :class="myVote === 'confirmed' ? 'btn-primary bg-green-400 hover:bg-green-500 px-2 text-white' : 'btn-ghost px-2'">
+                                Confirm
+                            </button>
                         </div>
-                        <input v-model="proposalForm.place" type="text" class="input input-sm input-bordered w-full mb-2">
-                        
-                        <div class="flex justify-end gap-2">
-                            <button @click="isProposing = false" class="btn btn-xs btn-ghost">Cancel</button>
-                            <button @click="submitProposal" class="btn btn-xs btn-primary">Send Proposal</button>
+
+                        <div v-else class="bg-base-200 p-3 rounded-lg animate-fade-in">
+                            <p class="text-sm font-bold mb-2">What would you like to change?</p>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <input v-model="proposalForm.date" type="date" class="input input-sm input-bordered w-full">
+                                <input v-model="proposalForm.time" type="time" class="input input-sm input-bordered w-full">
+                            </div>
+                            <input v-model="proposalForm.place" type="text" class="input input-sm input-bordered w-full mb-2">
+                            
+                            <div class="flex justify-end gap-2">
+                                <button @click="isProposing = false" class="btn btn-xs btn-primary bg-rose-400 hover:bg-rose-500 px-2">Cancel</button>
+                                <button @click="submitProposal" class="btn btn-xs btn-primary bg-green-400 hover:bg-green-500 px-2">Send Proposal</button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </div>  
                 
                 <div v-else class="text-center font-medium py-1">
                     <span v-if="isConfirmed" class="text-success flex justify-center items-center gap-2">
