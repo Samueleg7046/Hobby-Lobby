@@ -10,13 +10,13 @@ export default mongoose.model('Flag', new Schema ({
 
         operatore_ID: {
             type: Schema.Types.ObjectId,
-            /*ref: 'User',*/
+            ref: 'User',
             required: true
         },
 
         utente_ID: {
             type: Schema.Types.ObjectId,
-            /*ref: 'User',*/
+            ref: 'User',
             required: true
         }
 
