@@ -124,7 +124,7 @@ router.get('', async (req, res) => {
 // Join group
 router.post('/:id/join', async (req, res) => {
     const groupId = req.params.id;
-    const { userId } = req.body; // TODO: Prenderlo dal token di auth in futuro
+    const { userId } = req.body; 
 
     try {
         const group = await Group.findById(groupId);
@@ -135,20 +135,20 @@ router.post('/:id/join', async (req, res) => {
             return res.status(409).json({ error: "User is already a member" });
         }
 
-        // Update group and chat members and add group to user's groups
+        // 1. Aggiungi utente ai MEMBRI DEL GRUPPO
         const updateGroup = Group.findByIdAndUpdate(groupId, { 
             $addToSet: { members: userId } 
         });
 
-        const updateUser = User.findByIdAndUpdate(userId, { 
-            $addToSet: { savedGroups: groupId } 
-        });
-
+        // 2. Aggiungi utente alla CHAT
         const updateChat = Chat.findByIdAndUpdate(group.chatId, { 
             $addToSet: { participants: userId } 
         });
 
-        await Promise.all([updateGroup, updateUser, updateChat]);
+        // NOTA: Ho rimosso l'aggiornamento di 'savedGroups' dell'utente.
+        // Ora l'iscrizione e il salvataggio nei preferiti sono cose separate.
+
+        await Promise.all([updateGroup, updateChat]);
 
         res.status(200).json({ message: "Joined successfully", groupId: groupId });
 
@@ -160,7 +160,7 @@ router.post('/:id/join', async (req, res) => {
 // leave group
 router.delete('/:id/leave', async (req, res) => {
     const groupId = req.params.id;
-    const { userId } = req.body; // TODO: Auth token
+    const { userId } = req.body;
 
     try {
         const group = await Group.findById(groupId);
@@ -173,20 +173,17 @@ router.delete('/:id/leave', async (req, res) => {
             });
         }
 
-        // Check  if user is member
+        // Check if user is member
         if (!group.members.includes(userId)) {
             return res.status(400).json({ error: "User is not a member of this group" });
         }
 
-        // Remove user
+        // 1. Rimuovi dai MEMBRI DEL GRUPPO
         const updateGroup = Group.findByIdAndUpdate(groupId, { 
             $pull: { members: userId } 
         });
 
-        const updateUser = User.findByIdAndUpdate(userId, { 
-            $pull: { savedGroups: groupId } 
-        });
-
+        // 2. Rimuovi dalla CHAT
         let updateChat = Promise.resolve();
         if (group.chatId) {
             updateChat = Chat.findByIdAndUpdate(group.chatId, { 
@@ -194,7 +191,10 @@ router.delete('/:id/leave', async (req, res) => {
             });
         }
 
-        await Promise.all([updateGroup, updateUser, updateChat]);
+        // NOTA: Ho rimosso la rimozione da 'savedGroups'. 
+        // Se l'avevi nei preferiti, lì rimane anche se esci dal gruppo.
+
+        await Promise.all([updateGroup, updateChat]);
 
         res.status(200).json({ message: "Left group successfully" });
 
