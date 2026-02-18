@@ -16,8 +16,8 @@ const showToast = ref(false);
 const toastMessage = ref('');
 const toastType = ref('success');
 
-const myUserId = "6988e6a7c5caf3ad6a3af73b" // momentaneo
-//const myUserId = "69959df4637effcfa2ea9fa1" //momentaneo
+//const myUserId = "6988e6a7c5caf3ad6a3af73b" // momentaneo
+const myUserId = "69959df4637effcfa2ea9fa1" //momentaneo
 
 const newMeeting = ref({
     date: '',
@@ -177,9 +177,20 @@ const handleStatusUpdate = async (meetingId, newStatus) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: myUserId, status: newStatus })
         });
-        if (res.ok) await fetchGroupData();
+
+        if (res.ok) {
+            // update meeting
+            const targetMeeting = group.value.meetings.find(m => 
+                m.meetingId === meetingId || m._id === meetingId
+            );
+
+            if (targetMeeting) {
+                targetMeeting.status = newStatus;
+                console.log(`UI Aggiornata localmente: ${meetingId} -> ${newStatus}`);
+            }
+        }
     } catch (e) {
-        console.error(e);
+        console.error("Error during update:", e);
     }
 };
 

@@ -147,6 +147,7 @@ router.patch('/:meeting_id', async (req, res) => {
         if (req.body.time) meeting.time = req.body.time;
         if (req.body.place) meeting.place = req.body.place;
         if (req.body.description !== undefined) meeting.description = req.body.description;
+        if (req.body.status) meeting.status = req.body.status;
 
         const updateMeeting = await meeting.save();
         res.status(200).json(formatMeeting(updateMeeting, groupId));
