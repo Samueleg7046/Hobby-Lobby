@@ -1,5 +1,6 @@
 <script setup>
 import GroupCard from '../components/GroupCard.vue';
+import PlaceCard from '../components/PlaceCard.vue';
 import { ref, onMounted, onActivated } from 'vue';
 
 const groups = ref([]);
@@ -12,7 +13,7 @@ async function fetchGroups() {
   try {
     loading.value = true;
     error.value = null;
-
+ 
     const response = await fetch('http://localhost:8080/api/v1/groups/feed');
 
     if (!response.ok) {
