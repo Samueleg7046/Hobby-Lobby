@@ -6,7 +6,26 @@ const groups = ref([]);
 const loading = ref(true);
 const error = ref(null);
 
-const myUserId = "6988e6a7c5caf3ad6a3af73b" // momentaneo
+// AUTH
+//const myUserId = "6988e6a7c5caf3ad6a3af73b" // momentaneo
+const isLoggedIn = ref(false);
+const myUserId = ref(null);
+const myUserName = ref('');
+
+const checkAuth = () => {
+  const token = localStorage.getItem('token');
+  const userId = localStorage.getItem('userId');
+  const userName = localStorage.getItem('userName');
+
+  if (token && userId) {
+    isLoggedIn.value = true;
+    myUserId.value = userId;
+    myUserName.value = userName;
+  } else {
+    isLoggedIn.value = false;
+    myUserId.value = null; // Nessun utente loggato
+  }
+};
 
 async function fetchGroups() {
   try {
@@ -23,7 +42,7 @@ async function fetchGroups() {
 
   groups.value = data;
 
-  // DEBUG: Controlla se il backend ci sta mandando i membri!
+  // DEBUG
   console.log("Gruppi caricati:", data);
   } catch (err) {
     console.error("Fetch error: ", err);
@@ -34,12 +53,14 @@ async function fetchGroups() {
 }
 
 onMounted(() => {
+  checkAuth();
   fetchGroups();
 });
 
 // rafresh data when coming back to this page
 onActivated(() => {
-    fetchGroups();
+  checkAuth();
+  fetchGroups();
 });
 </script>
 
