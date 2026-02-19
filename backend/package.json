@@ -1,0 +1,35 @@
+{
+  "name": "hobby-lobby",
+  "version": "1.0.0",
+  "description": "ciao a tutti blazers",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "mongoose": "^9.1.5",
+    "nodemon": "^3.1.11",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0"
+  },
+  "devDependencies": {
+    "dotenv": "^17.2.3"
+  },
+  "scripts": {
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "start": "node index.js",
+    "dev": "node -r dotenv/config index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Samueleg7046/Hobby-Lobby.git"
+  },
+  "author": "Alessia, Samuele, Simone",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Samueleg7046/Hobby-Lobby/issues"
+  },
+  "homepage": "https://github.com/Samueleg7046/Hobby-Lobby#readme"
+}
