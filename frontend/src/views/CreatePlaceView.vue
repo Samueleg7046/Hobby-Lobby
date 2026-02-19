@@ -13,6 +13,7 @@ const form = ref({
     description: '',
 });
 
+
 const loading = ref(false);
 const error = ref(null);
 
@@ -48,7 +49,7 @@ async function createPlace() {
         }
 
         // if successful return to home 
-        router.push('/');
+        router.push('/places');
     } catch (err) {
         console.err("Errore durante la creazioned del luogo:", err);
         error.value = err.message || "Impossibile creare luogo";

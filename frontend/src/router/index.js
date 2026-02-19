@@ -9,6 +9,7 @@ import ProfileView from '../views/ProfileView.vue'
 import PlaceDetailsView from '../views/PlaceDetailsView.vue'
 import CreatePlaceView from '@/views/CreatePlaceView.vue'
 import CreateReview from '@/views/CreateReview.vue'
+import PlaceView from '../views/PlaceView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -48,8 +49,8 @@ const router = createRouter({
       path: '/user/:id',
       name: 'profile',
       component: ProfileView
-    }
-      path: '/createPlace',
+    },
+    {path: '/createPlace',
       name: 'createPlace',
       component: CreatePlaceView 
     },
