@@ -121,16 +121,24 @@ onActivated(() => {
             </button>
           </li>
 
-          <li><a>
+          <li><a href="/" class="flex items-center gap-2">
               <!-- Home icon -->
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" fill="none" stroke="currentColor" class="my-1.5 inline-block size-4 justify-center"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
               <span class="is-drawer-close:hidden">Homepage</span>
           </a></li>
          
-          <li><a>
-            <!-- Places-->
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" fill="none" stroke="currentColor" class="my-1.5 inline-block size-4 justify-center"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
-              <span class="is-drawer-close:hidden">Places</span></a></li>
+          <li>
+            <a href="/place" class="flex items-center gap-2"> 
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="my-1.5 inline-block size-4 justify-center">
+                <path d="M14.106 5.553a2 2 0 0 0-1.601 0l-4.63 1.852a2 2 0 0 1-1.475 0L2.512 5.847A1 1 0 0 0 1.2 6.772v11.52c0 .385.22.735.562.906l3.833 1.916a2 2 0 0 0 1.789 0l4.63-1.852a2 2 0 0 1 1.475 0l3.888 1.555a1 1 0 0 0 1.312-.925V6.458a1 1 0 0 0-.562-.906l-3.833-1.916a2 2 0 0 0-1.789 0Z"/>
+                <path d="M9 6.892V20.3"/>
+                <path d="M15 3.614v13.408"/>
+              </svg>
+
+              <span class="is-drawer-close:hidden">Places</span>
+            </a>
+          </li>
           
         </ul>
     </div>
