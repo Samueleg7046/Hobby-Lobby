@@ -4,10 +4,19 @@ import jwt from 'jsonwebtoken';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import User from './models/user.js';
+import nodemailer from 'nodemailer';
 
 const router = express.Router();
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
 
 // --- CONFIGURAZIONE PASSPORT GOOGLE ---
 passport.use(new GoogleStrategy({
@@ -69,21 +78,44 @@ router.post('/', async (req, res) => {
         });
         const savedUser = await newUser.save();
 
-        // GENERAZIONE TOKEN DI VERIFICA
+        // GENERAZIONE TOKEN DI VERIFICA E CREAZIONE LINK
         const verifyToken = jwt.sign({ id: savedUser._id }, process.env.SECRET_KEY, { expiresIn: '1d' });
+        const verificationLink = `${req.protocol}://${req.get('host')}/api/v1/users/verify/${verifyToken}`;
         
-        // DA SOSTITUIRE!!!! con invio email reale (Nodemailer/SendGrid)
-        console.log('-------------------------------------------------------');
-        console.log(`📧 VERIFICA EMAIL (DEV MODE): http://localhost:8080/api/v1/users/verify/${verifyToken}`);
-        console.log('-------------------------------------------------------');
+        // --- INIZIO NUOVO CODICE PER L'INVIO EMAIL ---
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: req.body.email, 
+            subject: 'Hobby Lobby - Confirm your account',
+            html: `
+                <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+                    <h2 style="color: #4f46e5;">Welcome to Hobby Lobby!</h2>
+                    <p>We're happy to have you on board. Click the button below to confirm your account:</p>
+                    <a href="${verificationLink}" style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 20px;">
+                        Confirm Account
+                    </a>
+                    <p style="margin-top: 30px; font-size: 12px; color: #666;">If you didn't request this registration, please ignore this email.</p>
+                </div>
+            `
+        };
 
-        res.status(201).json({ 
-            message: "Registrazione avvenuta con successo. Controlla la tua email per verificare l'account.",
-            userId: savedUser._id
-        });
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log("Email sent successfully to:", req.body.email);
+            
+            // Invia la risposta SOLO se la mail è partita con successo
+            res.status(201).json({ 
+                message: "Registration successful. Check your email to verify your account.",
+                userId: savedUser._id
+            });
+        } catch (mailError) {
+            console.error("Error while sending email:", mailError);
+            return res.status(500).json({ error: "User created, but error sending verification email" });
+        }
 
     } catch (error) {
-        res.status(400).json({ message: 'Errore registrazione', error: error.message });
+        console.error("Error during registration:", error);
+        res.status(400).json({ message: 'Registration error', error: error.message });
     }
 });
 
@@ -96,7 +128,7 @@ router.get('/verify/:token', async (req, res) => {
         //reindirizza alla pagina di Login del frontend
         res.redirect(`${FRONTEND_URL}/login?verified=true`);
     } catch (error) {
-        res.status(400).send("<h1>Link non valido o scaduto. Riprova la registrazione.</h1>");
+        res.status(400).send("<h1>Link not valid or expired. Please try registering again.</h1>");
     }
 });
 
@@ -107,11 +139,11 @@ router.post('/login', async (req, res) => {
         const user = await User.findOne({ 
             $or: [{ email: loginIdentifier }, { uniqueName: loginIdentifier }] 
         });
-        if (!user) return res.status(404).json({ message: 'Credenziali non valide' });
-        if (!user.password) return res.status(400).json({ message: 'Usa il login con Google' });
-        if (!user.isVerified) return res.status(403).json({ message: 'Devi prima confermare la tua email!' });
+        if (!user) return res.status(404).json({ message: 'Invalid credentials' });
+        if (!user.password) return res.status(400).json({ message: 'Use Google login instead' });
+        if (!user.isVerified) return res.status(403).json({ message: 'You must first verify your email!' });
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(400).json({ message: 'Credenziali non valide' });
+        if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
         const token = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: '7d' }); // Token dura 7 giorni
         res.status(200).json({ 
             token, 
@@ -134,11 +166,7 @@ router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 
 router.get('/auth/google/callback', 
   passport.authenticate('google', { session: false, failureRedirect: '/login-failed' }),
   (req, res) => {
-    //token JWT per utente loggato
     const token = jwt.sign({ id: req.user._id }, process.env.SECRET_KEY, { expiresIn: '7d' });
-    
-    //!!!!11! redirect a frontend passando il token nell'URL
-    //frontend legge token daURL e lo salva
     res.redirect(`${FRONTEND_URL}/auth/callback?token=${token}&userId=${req.user._id}`);
   }
 );
@@ -156,6 +184,7 @@ router.get('/:id', async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+
 // Aggiorna profilo utente
 router.patch('/:id', async (req, res) => {
     try {
@@ -240,12 +269,12 @@ router.delete('/:id/saved/friends/:friendId', async (req, res) => {
 router.get('/search/handle', async (req, res) => {
     try {
         const { query } = req.query;
-        if (!query) return res.status(400).json({ message: "Query mancante" });
+        if (!query) return res.status(400).json({ message: "Query missing" });
 
         const user = await User.findOne({ uniqueName: query })
             .select('uniqueName displayName profilePicture');
         
-        if (!user) return res.status(404).json({ message: "Utente non trovato" });
+        if (!user) return res.status(404).json({ message: "User not found" });
         
         res.json(user);
     } catch (error) {
@@ -258,7 +287,7 @@ router.get('/:id/friends', async (req, res) => {
         const user = await User.findById(req.params.id)
             .populate('savedFriends', 'displayName uniqueName profilePicture');
         
-        if (!user) return res.status(404).json({ message: "Utente non trovato" });
+        if (!user) return res.status(404).json({ message: "User not found" });
 
         res.json(user.savedFriends || []);
     } catch (error) {
@@ -273,7 +302,7 @@ router.delete('/:id/friends/:friendId', async (req, res) => {
         await User.findByIdAndUpdate(id, { $pull: { savedFriends: friendId } });
         await User.findByIdAndUpdate(friendId, { $pull: { savedFriends: id } });
         
-        res.status(200).json({ message: "Amicizia rimossa con successo" });
+        res.status(200).json({ message: "Friendship removed successfully" });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -286,10 +315,10 @@ router.delete('/:id', async (req, res) => {
         const deletedUser = await User.findByIdAndDelete(id);
         
         if (!deletedUser) {
-            return res.status(404).json({ error: "Utente non trovato" });
+            return res.status(404).json({ error: "User not found" });
         }
         
-        res.status(200).json({ message: "Account eliminato definitivamente" });
+        res.status(200).json({ message: "Account deleted permanently" });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
