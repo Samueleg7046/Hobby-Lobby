@@ -14,11 +14,9 @@ const createMeetingModal = ref(null);
 const saveLoading = ref(false);
 const error = ref(null);
 
-
 const showToast = ref(false);
 const toastMessage = ref('');
 const toastType = ref('success');
-
 
 const newMeeting = ref({
     date: '',
@@ -39,8 +37,18 @@ const editForm = ref({
     frequency: ''
 });
 
+// Admin check
+const userRole = localStorage.getItem('role');
+const isAdmin = computed(() => userRole === 'admin');
+
+// check if admin or creator
 const isCreator = computed(() => {
-    return group.value && group.value.createdBy === myUserId;
+    if (!group.value || !group.value.createdBy) return false;
+    const creatorId = typeof group.value.createdBy === 'object' 
+        ? group.value.createdBy.toString() 
+        : group.value.createdBy;
+
+    return creatorId === myUserId || isAdmin.value;
 });
 
 const isJoined = computed(() => {
@@ -58,16 +66,6 @@ const goToGroupChat = () => {
         alert("Error: Group chat not found.");
     }
 };
-
-// check if admin
-const isCreator = computed(() => {
-    if (!group.value || !group.value.createdBy) return false;
-    const creatorId = typeof group.value.createdBy === 'object' 
-        ? group.value.createdBy.toString() 
-        : group.value.createdBy;
-
-    return creatorId === myUserId;
-});
 
 // function that shows info about joined/left groups
 const triggerToast = (message, type = 'success') => {
@@ -249,6 +247,8 @@ const deleteGroup = async () => {
         router.push('/');
     } catch (error) {
         alert("Error: " + error.message);
+    }
+};
 
 // create meeting
 const createMeeting = async () => {
@@ -275,12 +275,13 @@ const createMeeting = async () => {
             createMeetingModal.value.close();
 
             triggerToast("Meeting successfully created!", "success");
-            await fetchGroupData(); // Refresh data
+            await fetchGroupData();
         } else {
             const errData = await res.json();
-            throw new Error(errData.error || "Error during creation");        }
+            throw new Error(errData.error || "Error during creation");        
+        }
     } catch (e) {
-        triggerToast("Errore during meeting creation", "error");
+        triggerToast("Error during meeting creation", "error");
     }
 };
 
@@ -316,7 +317,6 @@ const handleStatusUpdate = async (meetingId, newStatus) => {
         });
 
         if (res.ok) {
-            // update meeting
             const targetMeeting = group.value.meetings.find(m => 
                 m.meetingId === meetingId || m._id === meetingId
             );
