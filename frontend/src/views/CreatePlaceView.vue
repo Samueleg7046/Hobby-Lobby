@@ -11,9 +11,6 @@ const form = ref({
     closingTime: '',
     tags: '',
     description: '',
-    imageUrl: '',
-    // problems
-    // reviews??
 });
 
 const loading = ref(false);
@@ -29,13 +26,11 @@ async function createPlace() {
 
         const payload = {
             placeName: form.value.groupName,
+            address: from.value.address,
             openingTime: form.value.openingTime,
             closingTime: form.value.closingTime,
-            imageUrl: form.value.imageUrl,
             description: form.value.description || null,
             tags: tagsArray,
-            // problemi
-            //reviews
         };
 
         const response = await fetch('http://localhost:8080/api/v1/places', {
@@ -100,20 +95,6 @@ async function createPlace() {
                         class="textarea textarea-bordered h-24 w-full" 
                         placeholder="Come descriveresti questo posto?"
                         ></textarea>
-                    </div>
-
-                    <!--da implementare immagine -->
-                    <div class="form-control w-full">
-                        <label class="label">
-                            <span class="label-text font-semibold">URL Place image</span>
-                        </label>
-                        <input 
-                        v-model="form.imageUrl" 
-                        type="url" 
-                        placeholder="https://i.imgur.com/..." 
-                        class="input input-bordered w-full" 
-                        required
-                        />
                     </div>
                     
                     <div class="form-control w-full">

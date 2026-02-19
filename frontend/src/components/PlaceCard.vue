@@ -9,8 +9,6 @@ const props = defineProps({
     closingTime: String,
     tags: Array,
     description: String,
-    // problems: Array
-    // reviews??
 });
 
 const router = useRouter();
@@ -25,6 +23,12 @@ const goToPlace = () => {
     <div @click="goToPlace"
         class="card bg-base-100 shadow-xl w-full border border-base-200 hover:shadow-2xl transition-all duration-300">
             <!--IMMAGINE PLACE ANCORA DA CREARE -->
+            <figure class="h-64">
+            <img
+            :src="image"
+            alt="Group photo" 
+            class="w-full h-full object-cover"/>
+        </figure>
     </div>
 
     <p class="text-gray-600">{{ description }}</p>

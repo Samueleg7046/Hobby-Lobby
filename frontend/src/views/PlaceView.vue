@@ -23,7 +23,7 @@ async function fetchPlaces() {
 
   places.value = data;
 
-  // DEBUG: Controlla se il backend ci sta mandando i membri!
+  // DEBUG 
   console.log("Luoghi caricati:", data);
   } catch (err) {
     console.error("Fetch error: ", err);
@@ -68,20 +68,20 @@ onActivated(() => {
           </div>
 
           <div v-else-if="groups.length === 0" class="text-center py-10">
-            <p class="text-gray-500 lext-lg">No groups found yet.</p>
+            <p class="text-gray-500 lext-lg">Nessun posto trovato</p>
           </div>
 
-          <GroupCard 
+          <PlaceCard 
             v-else
-            v-for="group in groups" 
-            :key="group.self"
-            :id="group.self.split('/').pop()"
-            :title="group.groupName"
-            :description="group.description"
-            :image="group.imageUrl"
-            :tags="group.tags" 
-            :members="group.members"
-            :myUserId="myUserId"
+            v-for="place in places" 
+            :key="place.self"
+            :id="place.self.split('/').pop()"
+            :name="place.name"
+            :addres="place.address"
+            :openingTime="place.address"
+            :closingTime="place.closingTime"
+            :tags="place.tags"
+            :description="place.description"
           />
         </div>
       </div>
