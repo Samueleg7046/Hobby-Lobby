@@ -6,6 +6,9 @@ import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import AuthCallback from '../views/AuthCallback.vue'
 import ProfileView from '../views/ProfileView.vue'
+import PlaceDetailsView from '../views/PlaceDetailsView.vue'
+import CreatePlaceView from '@/views/CreatePlaceView.vue'
+import CreateReview from '@/views/CreateReview.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -46,6 +49,28 @@ const router = createRouter({
       name: 'profile',
       component: ProfileView
     }
+      path: '/createPlace',
+      name: 'createPlace',
+      component: CreatePlaceView 
+    },
+    {
+      path: '/place/:id',
+      name: 'placeDetails',
+      component: PlaceDetailsView,
+      props: true
+    },
+    {
+      path: '/place/:id/review',
+      name: 'reviewCreate',
+      component: CreateReview,
+      props: true
+    },
+    {
+      path: '/place/',
+      name: 'placeHome',
+      component: PlaceView,
+      props: true
+    },
   ]
 })
 
