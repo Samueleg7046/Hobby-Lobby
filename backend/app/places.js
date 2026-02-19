@@ -1,18 +1,14 @@
 import express from 'express';
 import Place from './models/place.js';
-//import User from './models/user.js';
-import { ReviewSchema } from './models/review.js';
+import User from './models/user.js';
 
 const router = express.Router({mergeParams: true});
 
 //CREAZIONE LUOGO
 
-router.post('/places', async (req, res) => {
-    try{
-        //1. mancato inserimento dei parametri obbligatori
+router.post('', async (req, res) => {
 
-       const {
-            placeID,
+    const {
             placeName,
             indirizzo,
             orarioChiusura,
@@ -22,21 +18,23 @@ router.post('/places', async (req, res) => {
             descrizione_luogo,    
        } = req.body;
 
+    try{
+        //1. mancato inserimento dei parametri obbligatori
+
         if (!placeName || !indirizzo || !orarioApertura || !orarioChiusura){
             return res.status(400).json({message: "Inserire dei parametri validi"})
         }
 
-        //2. check se il luogo esiste di già
+        //2. Il luogo esiste già
 
-        const existing = await Place.findOne({placeID: placeID});
-        if (existing) {
-            return res.status(401).json({message: "Il luogo indicato e' già registrato"})
+        const existingPlace = await Place.findOne({ placeName });
+        if (existingPlace) {
+            return res.status(409).json({ message: "Un luogo con questo nome esiste già" });
         }
 
         //3. Luogo creato con successo
 
         const newPlace = new Place({
-            placeID,
             placeName,
             indirizzo,
             orarioApertura,
@@ -46,9 +44,23 @@ router.post('/places', async (req, res) => {
             descrizione_luogo: descrizione_luogo || ""
         });
 
-        const savedPlace = await newPlace.save();
+        await newPlace.save();
 
-        res.status(201).json(savedPlace);
+        const savedPlace = {
+            placeID: newPlace._id,
+            self: `/api/v1/places/${newPlace._id}`,
+            placeName: newPlace.placeName,
+            media_recensioni: "",
+            indirizzo: newPlace.indirizzo,
+            orarioApertura: newPlace.orarioApertura,
+            orarioChiusura: newPlace.orarioChiusura,
+            attivita: newPlace.attivita || "",
+            problemi: [],
+            tags: newPlace.tags || [],
+            descrizione_luogo: newPlace.descrizione_luogo || ""
+        };
+
+        res.location(`/api/v1/places/${newPlace._id}`).status(201).json(savedPlace);
 
         }
 
@@ -61,7 +73,7 @@ router.post('/places', async (req, res) => {
 
 //RICERCA LUOGO PER ID
 
-router.get('/places/:placeID', async (req, res) => {
+router.get('/:placeID', async (req, res) => {
    
    try{
     const placeId = req.params.placeID;
@@ -84,104 +96,48 @@ router.get('/places/:placeID', async (req, res) => {
    }
 });
 
-//CREAZIONE DI UNA RECENSIONE
+//GET LISTA DI LUOGHI
 
-router.post ('/:place_id/places/reviews', async (req, res) => {
-    try{
-        const {place_id} = req.params;
-
-        const {userid, description, val } = req.body
-
-    const place = await Place.findById(place_id);
-
-    if (!place){
-        return res.status(404).json({message: 'Luogo non trovato'});
+router.get ('', async (req, res) =>{
+    try {
+        
+        const { tagInserito } = req.query;
+        
+        const filter = tagInserito ? { attivita: tagInserito } : {};
+        let places = await Place.find(filter)
+        
+            if (!places || places.lenght === 0) {
+                return res.status(204).send();
+            }
+        
+            const response = places.map(p => ({
+                placeID: p.placeID,
+                self: `/api/v1/places/${p._id}`,
+                placeName: p.placeName,
+                media_recensioni: p.media_recensioni,
+                attivita: p.attivita,
+                tags: p.tags,
+                descrizione_luogo: p. descrizione_luogo,
+                orarioApertura: p. orarioApertura,
+                orarioChiusura: p.orarioChiusura,
+                indirizzo: p.indirizzo,
+                problemi: p.problemi,
+                rev: p.rev ? p.rev.map(r => ({
+                                placeID: r.placeID,
+                                userID: r.userID,
+                                description: r.description,
+                                valutazione: r.valutazione
+                })) : []
+            }));
+        
+            res.status(200).json(response);
     }
 
-    if (val === undefined ){
-        return res.status(400).json({message: 'Inserire valutazione'});
-    }
-
-    if (userid === undefined){
-        return res.status(500).json({message: 'user id non valido'});
-    }
-
-        const newReview = await ReviewSchema.create({
-            placeID: place_id,
-            userID: userid,
-            descrizione: description || "",
-            valutazione: val
-        });
-
-        res.status(200).json({ message: 'Recensione creata' });
-
-        //manca aggiornamento valutazione del luogo
-    }
-
-    catch(error){
+    catch (error){
         res.status(500).json({message: "Server Error", error: error.message});
     }
 
 })
-
-//ELIMINAZIONE RECENSIONE
-
-router.delete ('/places/:place_id/reviews/:review_id', async (req, res) => {
-    try {
-        const placeid = req.params.place_id;
-        const userid = req.params.user_id;
-        const deleteReview = await ReviewSchema.findOne({
-        placeID: placeid,
-        userID: userid
-     })
-
-        //1: Recensione da eliminare non trovata
-        
-        if (!deleteReview) {
-            return res.status(404).json({ message: 'Recensione non trovata' });
-        }
-        
-        //2. Recensione eliminata
-
-        await deleteReview.deleteOne();
-        return res.status(201).json({ message: 'La recensione è stata rimossa'})
-    }
-
-    catch(error){
-        res.status(500).json({ error: 'Server error' });
-    }
-});
-
-//MODIFICA RECENSIONE
-router.patch('/places/:place_id/reviews/:review_id', async (req, res) => {
-    try {
-    const userid= req.params.user_id;
-    const placeid= req.params. place_id;
-
-    const rev = await ReviewSchema.finOne({
-        userID: userid,
-        placeID: placeid
-    })
-
-    if (!rev){
-        return res.status(404).json({ message: 'Recensione non trovata'})
-    }
-
-    if (req.body.descrption) rev.description = req.body.description;
-    if (req.body.valtazione) rev.valutazione = req.body.valutazione;
-
-    const updateRev = await rev.save();
-
-    res.status(200).json({message: 'Recensione modificata'}, updateRev);
-
-    }
-
-    catch(error){
-        res.status(400).json({ error: err.message });
-    }
-
-});
-
 
 export default router;
 

@@ -1,17 +1,8 @@
 import mongoose from 'mongoose';
-import { ReviewSchema } from './review.js';
 const { Schema } = mongoose;
 
 
 export default mongoose.model('Place', new Schema ({
-        placeID: {
-            type: String,
-            unique: true,
-            required: true,
-            maxLenght: 20,
-            trim: true
-        },
-
         placeName: {
             type: String,
             required: true,
@@ -20,7 +11,7 @@ export default mongoose.model('Place', new Schema ({
         },
 
         media_recensioni: {
-            type: Number,
+            type: Number, 
             default: null
         },
 
@@ -61,10 +52,12 @@ export default mongoose.model('Place', new Schema ({
         },
 
         problemi: {
-            type: [Schema.Types.ObjectId],
+            type: [String],
             default: null
         },
 
-        rev: [ReviewSchema]
+        rev: {
+             type: [{ type: Schema.Types.ObjectId, ref: 'Review' }]
+        }
     }
 ));

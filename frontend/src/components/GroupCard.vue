@@ -18,12 +18,12 @@ const router = useRouter();
 // checks if already member
 const isJoined = computed(() => {
     if (!props.members) return false;
+    
     return props.members.some(m => {
         if (typeof m === 'string') return m === props.myUserId;
         return (m.userId === props.myUserId) || (m._id === props.myUserId);
     });
 });
-
 
 // When click on card
 const goToGroup = () => {

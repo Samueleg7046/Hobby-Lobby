@@ -5,8 +5,10 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import User from './models/user.js';
 
-console.log("DEBUG - SECRET_KEY:", process.env.SECRET_KEY);
 const router = express.Router();
+
+// URL del Frontend (Da mettere nel .env, default a localhost:5173)
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // --- CONFIGURAZIONE PASSPORT GOOGLE ---
 passport.use(new GoogleStrategy({
@@ -25,12 +27,14 @@ passport.use(new GoogleStrategy({
                 user.isVerified = true;
                 await user.save();
             } else {
+                // Nuovo utente via Google
                 user = new User({
                     googleId: profile.id,
-                    uniqueName: `user_${profile.id.slice(0,5)}`, // Nome provvisorio
+                    uniqueName: `user_${profile.id.slice(0,5)}`,
                     displayName: profile.displayName,
                     email: profile.emails[0].value,
-                    isVerified: true
+                    isVerified: true,
+                    role: 'user'
                 });
                 await user.save();
             }
@@ -42,7 +46,7 @@ passport.use(new GoogleStrategy({
   }
 ));
 
-// REGISTRAZIONE & LOGIN -----------------------------------
+// --- REGISTRAZIONE & LOGIN --------------------
 
 //REGISTRAZIONE CLASSICA
 router.post('/', async (req, res) => {
@@ -51,7 +55,6 @@ router.post('/', async (req, res) => {
         const existingUser = await User.findOne({ 
             $or: [{ email: email }, { uniqueName: uniqueName }] 
         });
-
         if (existingUser) {
             return res.status(409).json({ message: 'Username o email già esistenti' });
         }
@@ -64,60 +67,61 @@ router.post('/', async (req, res) => {
             password: hashedPassword,
             birthDate,
             role: 'user',
-            isVerified: false
+            isVerified: false // Richiede verifica
         });
-        // Per debug: verifica che la chiave segreta sia letta correttamente
-        console.log("SECRET_KEY LETTA:", process.env.SECRET_KEY);
         const savedUser = await newUser.save();
 
-        // SIMULAZIONE INVIO EMAIL
+        // GENERAZIONE TOKEN DI VERIFICA
         const verifyToken = jwt.sign({ id: savedUser._id }, process.env.SECRET_KEY, { expiresIn: '1d' });
-        console.log(`📧 [SIMULAZIONE EMAIL] Ciao ${savedUser.displayName}, clicca qui per confermare: http://localhost:8080/api/v1/users/verify/${verifyToken}`);
+        
+        // DA SOSTITUIRE!!!! con invio email reale (Nodemailer/SendGrid)
+        console.log('-------------------------------------------------------');
+        console.log(`📧 VERIFICA EMAIL (DEV MODE): http://localhost:8080/api/v1/users/verify/${verifyToken}`);
+        console.log('-------------------------------------------------------');
 
         res.status(201).json({ 
-            message: "Utente registrato. Controlla la console per il link di verifica!",
-            userId: savedUser._id,
-            uniqueName: savedUser.uniqueName,
-            email: savedUser.email
+            message: "Registrazione avvenuta con successo. Controlla la tua email per verificare l'account.",
+            userId: savedUser._id
         });
 
     } catch (error) {
         res.status(400).json({ message: 'Errore registrazione', error: error.message });
     }
 });
+
+//VERIFICA LINK EMAIL
 router.get('/verify/:token', async (req, res) => {
     try {
         const { token } = req.params;
         const decoded = jwt.verify(token, process.env.SECRET_KEY);
-        
         await User.findByIdAndUpdate(decoded.id, { isVerified: true });
-        res.send("<h1>Email verificata con successo! Ora puoi fare login.</h1>");
+        //reindirizza alla pagina di Login del frontend
+        res.redirect(`${FRONTEND_URL}/login?verified=true`);
     } catch (error) {
-        res.status(400).send("<h1>Link non valido o scaduto</h1>");
+        res.status(400).send("<h1>Link non valido o scaduto. Riprova la registrazione.</h1>");
     }
 });
 
-// LOGIN CLASSICO
+//LOGIN CLASSICO
 router.post('/login', async (req, res) => {
     try {
         const { loginIdentifier, password } = req.body;
         const user = await User.findOne({ 
             $or: [{ email: loginIdentifier }, { uniqueName: loginIdentifier }] 
         });
-
-        if (!user) return res.status(404).json({ message: 'Utente non trovato' });
+        if (!user) return res.status(404).json({ message: 'Credenziali non valide' });
         if (!user.password) return res.status(400).json({ message: 'Usa il login con Google' });
         if (!user.isVerified) return res.status(403).json({ message: 'Devi prima confermare la tua email!' });
-
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Credenziali non valide' });
-        const token = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: '1h' });
+        const token = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: '7d' }); // Token dura 7 giorni
         res.status(200).json({ 
             token, 
             user: { 
                 id: user._id, 
                 uniqueName: user.uniqueName, 
                 displayName: user.displayName,
+                profilePicture: user.profilePicture,
                 role: user.role 
             } 
         });
@@ -126,26 +130,27 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// LOGIN CON GOOGLE
+//LOGIN CON GOOGLE
 router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 router.get('/auth/google/callback', 
   passport.authenticate('google', { session: false, failureRedirect: '/login-failed' }),
   (req, res) => {
-    const token = jwt.sign({ id: req.user._id }, process.env.SECRET_KEY, { expiresIn: '1h' });
-    // dopo: res.redirect(`http://localhost:3000/login-success?token=${token}`);
-    res.json({ message: "Login Google riuscito!", token, user: req.user });
+    //token JWT per utente loggato
+    const token = jwt.sign({ id: req.user._id }, process.env.SECRET_KEY, { expiresIn: '7d' });
+    
+    //!!!!11! redirect a frontend passando il token nell'URL
+    //frontend legge token daURL e lo salva
+    res.redirect(`${FRONTEND_URL}/auth/callback?token=${token}&userId=${req.user._id}`);
   }
 );
 
-// SEZIONE PROFILO E GESTIONE DATI ------------------------------
-
-// Recupero profilo utente
+// --- SEZIONE PROFILO UTENTE ------------------------
 router.get('/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id)
-            .select('-password') // Nascondi password
-            .populate('savedActivities')
+            .select('-password') //nasconde password
+            // .populate('savedActivities')
             .populate('savedGroups')
             .populate('savedFriends', 'uniqueName displayName profilePicture');
         if (!user) return res.status(404).json({ message: 'User not found' });
@@ -154,9 +159,34 @@ router.get('/:id', async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+// Aggiorna profilo utente
+router.patch('/:id', async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const updates = req.body;
 
+        // Protezione: Evitiamo che l'utente cambi cose pericolose (es. ruolo, email, password da qui)
+        // Permettiamo solo questi campi:
+        const allowedUpdates = ['displayName', 'description', 'profilePicture', 'hobbies'];
+        const filteredUpdates = {};
+        
+        Object.keys(updates).forEach(key => {
+            if (allowedUpdates.includes(key)) {
+                filteredUpdates[key] = updates[key];
+            }
+        });
 
-// Gruppi Salvati
+        const user = await User.findByIdAndUpdate(userId, filteredUpdates, { new: true });
+        
+        if (!user) return res.status(404).json({ message: "Utente non trovato" });
+
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Gruppi salvati
 router.put('/:id/saved/groups/:groupId', async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
@@ -185,16 +215,15 @@ router.delete('/:id/saved/groups/:groupId', async (req, res) => {
     }
 });
 
-// Amici/Utenti Salvati
+// Amici salvati
 router.put('/:id/saved/friends/:friendId', async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
-        const friendId = req.params.friendId;
-        if (user.savedFriends.includes(friendId)) {
+        if (user.savedFriends.includes(req.params.friendId)) {
             return res.status(409).json({ message: 'Friend already saved' });
         }
-        user.savedFriends.push(friendId);
+        user.savedFriends.push(req.params.friendId);
         await user.save();
         res.status(200).json(user.savedFriends);
     } catch (error) {
@@ -209,6 +238,22 @@ router.delete('/:id/saved/friends/:friendId', async (req, res) => {
         user.savedFriends.pull(req.params.friendId);
         await user.save();
         res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/search/handle', async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) return res.status(400).json({ message: "Query mancante" });
+
+        const user = await User.findOne({ uniqueName: query })
+            .select('uniqueName displayName profilePicture');
+        
+        if (!user) return res.status(404).json({ message: "Utente non trovato" });
+        
+        res.json(user);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
