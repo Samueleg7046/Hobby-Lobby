@@ -3,6 +3,7 @@ import groups from './groups.js';
 import meetings from './meetings.js';
 import places from './places.js';
 import reviews from './reviews.js';
+import friendsRouter from './friends.js';
 import flags from "./flags.js";
 
 import cors from 'cors';
@@ -26,5 +27,6 @@ app.use('/api/v1/places/:place_id/reviews', reviews);
 app.use('/api/v1/users', users);
 app.use('/api/v1/chats', chats);
 app.use('/api/v1/notifications', notifications);
+app.use('/api/v1/friends', friendsRouter);
 
 export default app;

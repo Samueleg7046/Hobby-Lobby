@@ -53,7 +53,7 @@ async function createGroup() {
         // if successful return to home 
         router.push('/');
     } catch (err) {
-        console.err("Error during group creation:", err);
+        console.error("Error during group creation:", err);
         error.value = err.message || "Impossible to create group";
     } finally {
         loading.value = false;

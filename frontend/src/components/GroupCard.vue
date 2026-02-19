@@ -18,21 +18,12 @@ const router = useRouter();
 // checks if already member
 const isJoined = computed(() => {
     if (!props.members) return false;
-
-    // DEBUG: Vediamo cosa c'è dentro per il gruppo a cui ti sei appena iscritto
-    // Sostituisci 'Titolo del Tuo Gruppo' con una parte del nome del gruppo che stai testando
-    if (props.title.includes("NomeDelTuoGruppo")) {
-        console.log(`🔍 DEBUG CARD "${props.title}"`);
-        console.log("Membri ricevuti:", props.members);
-        console.log("Il mio ID:", props.myUserId);
-    }
     
     return props.members.some(m => {
         if (typeof m === 'string') return m === props.myUserId;
         return (m.userId === props.myUserId) || (m._id === props.myUserId);
     });
 });
-
 
 // When click on card
 const goToGroup = () => {

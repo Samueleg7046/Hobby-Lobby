@@ -26,9 +26,9 @@ router.get('/feed', async (req, res) => {  // da aggiungere logica per recommend
         groups.sort((a, b) => b.createdAt - a.createdAt);
     }
 
-    if (!groups || groups.length === 0) {
-        return res.status(204).end();
-    }
+        if (!groups || groups.length === 0) {
+            return res.status(200).json([]);
+        }
 
     const response = groups.map(g => ({
         self: `/api/v1/groups/${g._id}`,
@@ -104,7 +104,7 @@ router.get('', async (req, res) => {
             self: `/api/v1/groups/${g._id}/meetings/${meet._id}`,
             date: meet.date,
             time: meet.time,
-            placeId: meet.placeId,
+            place: meet.place,
             description: meet.description ?? null,
             status: meet.status,
             totalMembers: meet.totalMembers,
@@ -124,7 +124,7 @@ router.get('', async (req, res) => {
 // Join group
 router.post('/:id/join', async (req, res) => {
     const groupId = req.params.id;
-    const { userId } = req.body; // TODO: Prenderlo dal token di auth in futuro
+    const { userId } = req.body; 
 
     try {
         const group = await Group.findById(groupId);
@@ -134,24 +134,14 @@ router.post('/:id/join', async (req, res) => {
         if (group.members.includes(userId)) {
             return res.status(409).json({ error: "User is already a member" });
         }
-
-        // Update group and chat members and add group to user's groups
         const updateGroup = Group.findByIdAndUpdate(groupId, { 
             $addToSet: { members: userId } 
         });
-
-        const updateUser = User.findByIdAndUpdate(userId, { 
-            $addToSet: { savedGroups: groupId } 
-        });
-
         const updateChat = Chat.findByIdAndUpdate(group.chatId, { 
             $addToSet: { participants: userId } 
         });
-
-        await Promise.all([updateGroup, updateUser, updateChat]);
-
+        await Promise.all([updateGroup, updateChat]);
         res.status(200).json({ message: "Joined successfully", groupId: groupId });
-
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -160,7 +150,7 @@ router.post('/:id/join', async (req, res) => {
 // leave group
 router.delete('/:id/leave', async (req, res) => {
     const groupId = req.params.id;
-    const { userId } = req.body; // TODO: Auth token
+    const { userId } = req.body;
 
     try {
         const group = await Group.findById(groupId);
@@ -173,29 +163,20 @@ router.delete('/:id/leave', async (req, res) => {
             });
         }
 
-        // Check  if user is member
+        // Check if user is member
         if (!group.members.includes(userId)) {
             return res.status(400).json({ error: "User is not a member of this group" });
         }
-
-        // Remove user
         const updateGroup = Group.findByIdAndUpdate(groupId, { 
             $pull: { members: userId } 
         });
-
-        const updateUser = User.findByIdAndUpdate(userId, { 
-            $pull: { savedGroups: groupId } 
-        });
-
         let updateChat = Promise.resolve();
         if (group.chatId) {
             updateChat = Chat.findByIdAndUpdate(group.chatId, { 
                 $pull: { participants: userId } 
             });
         }
-
-        await Promise.all([updateGroup, updateUser, updateChat]);
-
+        await Promise.all([updateGroup, updateChat]);
         res.status(200).json({ message: "Left group successfully" });
 
     } catch (err) {
@@ -203,11 +184,14 @@ router.delete('/:id/leave', async (req, res) => {
     }
 });
 
-router.post('', async (req, res) => { // aggiungere codice 401, utente non autenticato
+router.post('', async (req, res) => {
     const { groupName, description, tags, duration, frequency, imageUrl } = req.body;
     const userId = req.body.userId;
 
     try {
+        const user = await User.findById(userId);
+        if (!user) throw new Error("User not found");
+
         const newGroup = new Group({
             groupName: groupName,
             description, 
@@ -250,16 +234,16 @@ router.post('', async (req, res) => { // aggiungere codice 401, utente non auten
             members: [{      
                 userId: userId,
                 self: `/api/v1/users/${userId}`,
-                displayName: m.displayName,
-                uniqueName: m.uniqueName,
-                profilePicture: m.profilePicture 
+                displayName: user.displayName,
+                uniqueName: user.uniqueName,
+                profilePicture: user.profilePicture 
             }],
             meetings: [] 
         };
 
-    res.location(`/api/v1/groups/${newGroup._id}`).status(201).json(response);
+        res.location(`/api/v1/groups/${newGroup._id}`).status(201).json(response);
     } catch (err) {
-        res.status(400).json({ errore: err.message });
+        res.status(400).json({ error: err.message });
     }
 });
 
@@ -294,20 +278,21 @@ router.get('/:id', async (req, res) =>{
         duration: g.duration,
         frequency: g.frequency,
         isRecruiting: g.isRecruiting,
+        createdBy: g.createdBy,
         creationDate: g.createdAt,
         membersCount: g.members.length,
         members: g.members.map(m => ({
             userId: m._id,
             self: `/api/v1/users/${m._id}`,
-            email: m.email         //altro??
+            email: m.email        
         })),
-        meetings: g.meetings.map(meet => ({
+        meetings: g.meetings ? g.meetings.map(meet => ({
             meetingId: meet._id,
             groupId: g._id,
             self: `/api/v1/groups/${g._id}/meetings/${meet._id}`,
             date: meet.date,
             time: meet.time,
-            placeId: meet.placeId,
+            place: meet.place,
             description: meet.description ?? null,
             status: meet.status,
             totalMembers: meet.totalMembers,
@@ -318,7 +303,7 @@ router.get('/:id', async (req, res) =>{
                 changeProposal: vote.changeProposal ?? null,
                 respondedAt: vote.respondedAt
             })) : []
-        }))
+        })) : []
     };
 
     return res.status(200).json(result);
