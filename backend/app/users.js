@@ -7,7 +7,6 @@ import User from './models/user.js';
 
 const router = express.Router();
 
-// URL del Frontend (Da mettere nel .env, default a localhost:5173)
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // --- CONFIGURAZIONE PASSPORT GOOGLE ---
@@ -27,7 +26,6 @@ passport.use(new GoogleStrategy({
                 user.isVerified = true;
                 await user.save();
             } else {
-                // Nuovo utente via Google
                 user = new User({
                     googleId: profile.id,
                     uniqueName: `user_${profile.id.slice(0,5)}`,
@@ -67,7 +65,7 @@ router.post('/', async (req, res) => {
             password: hashedPassword,
             birthDate,
             role: 'user',
-            isVerified: false // Richiede verifica
+            isVerified: false
         });
         const savedUser = await newUser.save();
 
@@ -150,7 +148,6 @@ router.get('/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id)
             .select('-password') //nasconde password
-            // .populate('savedActivities')
             .populate('savedGroups')
             .populate('savedFriends', 'uniqueName displayName profilePicture');
         if (!user) return res.status(404).json({ message: 'User not found' });
@@ -164,9 +161,6 @@ router.patch('/:id', async (req, res) => {
     try {
         const userId = req.params.id;
         const updates = req.body;
-
-        // Protezione: Evitiamo che l'utente cambi cose pericolose (es. ruolo, email, password da qui)
-        // Permettiamo solo questi campi:
         const allowedUpdates = ['displayName', 'description', 'profilePicture', 'hobbies'];
         const filteredUpdates = {};
         
@@ -254,6 +248,48 @@ router.get('/search/handle', async (req, res) => {
         if (!user) return res.status(404).json({ message: "Utente non trovato" });
         
         res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/:id/friends', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id)
+            .populate('savedFriends', 'displayName uniqueName profilePicture');
+        
+        if (!user) return res.status(404).json({ message: "Utente non trovato" });
+
+        res.json(user.savedFriends || []);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// RIMUOVI AMICIZIA
+router.delete('/:id/friends/:friendId', async (req, res) => {
+    try {
+        const { id, friendId } = req.params;
+        await User.findByIdAndUpdate(id, { $pull: { savedFriends: friendId } });
+        await User.findByIdAndUpdate(friendId, { $pull: { savedFriends: id } });
+        
+        res.status(200).json({ message: "Amicizia rimossa con successo" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ELIMINA ACCOUNT
+router.delete('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedUser = await User.findByIdAndDelete(id);
+        
+        if (!deletedUser) {
+            return res.status(404).json({ error: "Utente non trovato" });
+        }
+        
+        res.status(200).json({ message: "Account eliminato definitivamente" });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

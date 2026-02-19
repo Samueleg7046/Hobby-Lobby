@@ -4,173 +4,95 @@ import Review from './models/review.js';
 
 const router = express.Router({mergeParams: true}); 
 
-//CREAZIONE DI UNA RECENSIONE
+// aggiorna media voti di un luogo in automatico
+const updatePlaceRating = async (placeId) => {
+    const place = await Place.findById(placeId).populate('rev');
+    if (!place) return;
+    
+    if (!place.rev || place.rev.length === 0) {
+        place.media_recensioni = 0;
+    } else {
+        const total = place.rev.reduce((sum, r) => sum + r.valutazione, 0);
+        place.media_recensioni = parseFloat((total / place.rev.length).toFixed(1));
+    }
+    await place.save();
+};
 
+// CREAZIONE REVIEW
 router.post ('', async (req, res) => {
     try{
-        const {place_id} = req.params;
-        const {userID, description, valutazione} = req.body;
+        const { place_id } = req.params;
+        const { userID, description, valutazione } = req.body;
+
+        if (!valutazione || !userID){
+            return res.status(400).json({message: "Insert valid parameters (rating and userID are required)"});
+        }
 
         const place = await Place.findById(place_id);
-
-        //1. mancato inserimento parametri obbligatori
-
-        if (!valutazione){
-            return res.status(400).json({message: "Inserire dei parametri validi"})
-        }
-
-        //2. Il posto selezionato non esiste
         if (!place){
-            return res.status(404).json({message: 'Luogo non trovato' });
+            return res.status(404).json({message: 'Place not found' });
         }
 
-        if (userID === undefined){
-            return res.status(400).json({message: 'user id non valido'});
+        // existing review check
+        const existingReview = await Review.findOne({ placeID: place_id, userID: userID });
+        if (existingReview) {
+            return res.status(409).json({ message: 'You have already reviewed this place.' });
         }
 
         const newReview = await Review.create({
             placeID: place_id,
             userID,
-            descrizione: description || "",
+            description: description || "",
             valutazione
         });
 
-        res.status(200).json({ message: 'Recensione creata', review: newReview });
+        place.rev.push(newReview._id);
+        await place.save();
+        await updatePlaceRating(place_id);
 
+        res.status(201).json({ message: 'Review created successfully', review: newReview });
     }
-
     catch(error){
         res.status(500).json({message: "Server Error", error: error.message});
     }
+});
 
-})
-
-// LISTA RECENSIONI DI UN POSTO
-
+// RECUPERO RECENSIONI PLACE
 router.get('', async (req, res) => {
-    try{
-        const {place_id} = req.query;
-
-        let reviewExists = await Review.find(place_id);
-
-        //1. Recensioni non trovate
-
-        if (!reviewExists || reviewExists.lenght === 0) {
-            return res.status(404).json({error: 'Lista non disponibile'});
-        }
-
-        //2. Lista recensioni
-
-        const result = reviewExists.map(r => ({
-                    placeID: r.placeID,
-                    self: `/api/v1/places/${place_id}/reviews`,
-                    userID: r.userID,
-                    description: r.description,
-                    valutazione: r.valutazione,
-                    _id: r._id
-                }));
-        
-        res.status(200).json(result);
-    
-    }
-
-    catch (error){
-        res.status(500).json({message: "Server Error", error: error.message});
-    }
-});
-
-// DETTAGLI RECENSIONE
-
-router.get('/:review_id', async (req, res) => {
-   
-   try{
-    const placeId = req.params.place_id;
-    const reviewId = req.params.review_id;
-
-    //1. Recensione non trovata
-
-    const r = await Review.findById(reviewId);
-
-    if (!r){
-        return res.status(404).json({ message: 'Recensione non trovata' });
-    }
-
-    //2. Controllo place_id
-
-    if (r.placeID.toString() !== placeId){
-        return res.status(400).json({ message: 'Errore place_id' });
-    }
-
-    //3. Recensione trovata
-    res.status(200).json(r);
-
-   }
-
-   catch(error){
-        res.status(500).json({message: "Server Error", error: error.message});
-   }
-});
-
-//ELIMINAZIONE RECENSIONE
-
-router.delete ('/:review_id', async (req, res) => {
     try {
-        const {place_id} = req.params;
-        const {review_id}= req.params;
-        const rev = await Review.findById(review_id)
+        const { place_id } = req.params;
+        const reviews = await Review.find({ placeID: place_id }).populate('userID', 'displayName uniqueName profilePicture');
+        res.status(200).json(reviews);
+    } catch (error) {
+        res.status(500).json({ error: 'Server error', message: error.message });
+    }
+});
 
-        //1: Recensione da eliminare non trovata
-        
+// ELIMINA REVIEW
+router.delete('/:review_id', async (req, res) => {
+    try {
+        const { place_id, review_id } = req.params;
+        const { userID, role } = req.body;
+
+        const rev = await Review.findById(review_id);
         if (!rev) {
-            return res.status(404).json({ message: 'Recensione non trovata' });
+            return res.status(404).json({ message: 'Review not found' });
         }
-        
-        //2. Recensione eliminata
-
+        if (rev.userID.toString() !== userID && role !== 'admin') {
+            return res.status(403).json({ message: 'You are not authorized to delete this review' });
+        }
         await rev.deleteOne();
-        return res.status(201).json({ message: 'La recensione è stata rimossa correttamente'})
+        const place = await Place.findById(place_id);
+        if (place) {
+            place.rev = place.rev.filter(rId => rId.toString() !== review_id);
+            await place.save();
+            await updatePlaceRating(place_id);
+        }
+        return res.status(200).json({ message: 'Review deleted successfully' });
     }
-
     catch(error){
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: 'Server error', message: error.message });
     }
-});
-
-//MODIFICA RECENSIONE
-router.patch('/:review_id', async (req, res) => {
-    try {
-        const {place_id} = req.params;
-        const {review_id}= req.params;
-        const {userID, description, valutazione} = req.body;
-
-    const rev = await Review.findById(review_id)
-
-    //1. Recensione non trovata
-
-    if (!rev){
-        return res.status(404).json({ message: 'Recensione non trovata'})
-    }
-
-    //2. Tentativo di modificare rencensione non propria
-    if (rev.userID.toString() !== req.body.userID){
-        return res.status(403).json({ message: 'Non autorizzato a modificare questa recensione' });
-    }
-
-    //3. Recensione modificata
-
-    rev.description = req.body.description;
-    rev.valutazione = req.body.valutazione;
-
-    const updateRev = await rev.save();
-
-    res.status(200).json({message: 'Recensione modificata'}, updateRev);
-
-    }
-
-    catch(error){
-        res.status(500).json({ error: 'Server error' });
-    }
-
 });
 
 export default router;

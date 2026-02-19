@@ -21,9 +21,8 @@ export default mongoose.model('Meeting', new Schema({
         type: String,
         required: true
     },
-    placeId: {       
-        type: Schema.Types.ObjectId,
-        ref: 'Place',
+    place: {       
+        type: String,
         required: true
     },
     description: {

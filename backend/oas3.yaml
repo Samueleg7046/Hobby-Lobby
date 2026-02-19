@@ -10,6 +10,21 @@ servers:
     description: Localhost
 
 paths: 
+  /places/feed:
+    get:
+      summary: Get public feed of places
+      responses:
+        '200':
+          description: List of places found
+          content: 
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: "#/components/schemas/PlaceResponse"
+        '204': 
+          description: No groups available for selected filters
+
   /places:
     get:
       summary: Get list of places
@@ -1225,6 +1240,7 @@ components:
       - orarioApertura
       - orarioChiusura
       - indirizzo
+      - self
       properties:
         placeID: 
           type: string
@@ -1272,6 +1288,9 @@ components:
           nullable: true
           items:
             $ref: "#/components/schemas/PlaceReviewResponse"
+        self:
+          type: string
+          description: Link to group
         
     PlaceCreateReview:
       type: object
@@ -1483,7 +1502,7 @@ components:
       required:
         - date
         - time
-        - placeId 
+        - place
       properties:
         date:
           type: string
@@ -1491,7 +1510,7 @@ components:
         time:
           type: string
           format: time
-        placeId:
+        place:
           type: string 
         description:
           type: string
@@ -1510,7 +1529,7 @@ components:
         - createdBy
         - date
         - time
-        - placeId
+        - place
         - status
         - totalMembers
         - currentVotes
@@ -1527,7 +1546,7 @@ components:
         time:
           type: string
           format: time
-        placeId:
+        place:
           type: string
         description:
           type: string
@@ -1573,7 +1592,7 @@ components:
           type: string
           format: time
           nullable: true
-        placeId: 
+        place: 
           type: string
           nullable: true
 
@@ -1602,7 +1621,7 @@ components:
               type: string
               format: time
               nullable: true
-            placeId:
+            place:
               type: string
               nullable: true
         respondedAt: 
@@ -1629,7 +1648,7 @@ components:
               type: string
               format: time
               nullable: true
-            placeId:
+            place:
               type: string
               nullable: true
 

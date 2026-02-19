@@ -2,10 +2,11 @@ import express from 'express';
 import Group from './models/group.js';
 import User from './models/user.js'
 import Chat from './models/chat.js';
+import Notification from './models/notification.js';
 
 const router = express.Router();
 
-// get feed of groups with isRecruiting = true
+// feed dei places
 router.get('/feed', async (req, res) => {  // da aggiungere logica per recommended
     const {filter, tags } = req.query;
 
@@ -17,18 +18,16 @@ router.get('/feed', async (req, res) => {  // da aggiungere logica per recommend
     
     let groups = await Group.find(query);
 
-    // trending shows the groups with the most members
     if (filter === 'trending') {
         groups.sort((a, b) => a.members.length - b.members.length);
     } else if (filter === 'recommended') {
-        // implementare logica
-    } else {  //new shows the most recent groups
+    } else {  
         groups.sort((a, b) => b.createdAt - a.createdAt);
     }
 
-    if (!groups || groups.length === 0) {
-        return res.status(204).end();
-    }
+        if (!groups || groups.length === 0) {
+            return res.status(200).json([]);
+        }
 
     const response = groups.map(g => ({
         self: `/api/v1/groups/${g._id}`,
@@ -43,32 +42,26 @@ router.get('/feed', async (req, res) => {  // da aggiungere logica per recommend
         creationDate: g.createdAt,
         duration: g.duration,
         frequency: g.frequency,
-        // I don't send meetings list, we don't need that for feed
         meetings: [],
         members: g.members.map(memberId => ({ userId: memberId }))
     }));
 
     res.status(200).json(response);
-
 });
 
-// List of groups
 router.get('', async (req, res) => {
-
     const { userId } = req.query;
 
-    // returns olny user's groups if userId is specified
     const filter = userId ? { members: userId } : {};
     
-    // groups is an array of populated groups
     let groups = await Group
         .find(filter)
         .populate('members', 'displayName uniqueName profilePicture')
         .populate({
             path: 'meetings',
-            match: { date: { $gte: new Date().toISOString().split('T')[0] } }, // Only future meetings  ( da vedere come salvare data su db)
+            match: { date: { $gte: new Date().toISOString().split('T')[0] } }, 
             options: {  
-                sort: { date: 1, time: 1 }, // Show upcoming meetings first 
+                sort: { date: 1, time: 1 }, 
             }
         })
         .exec();
@@ -82,7 +75,6 @@ router.get('', async (req, res) => {
         self: `/api/v1/groups/${g._id}`,
         groupName: g.groupName,
         chatId: g.chatId,
-        // if description is null/undefined, then null
         description: g.description ?? null,
         imageUrl: g.imageUrl,
         tags: g.tags,
@@ -104,7 +96,7 @@ router.get('', async (req, res) => {
             self: `/api/v1/groups/${g._id}/meetings/${meet._id}`,
             date: meet.date,
             time: meet.time,
-            placeId: meet.placeId,
+            place: meet.place,
             description: meet.description ?? null,
             status: meet.status,
             totalMembers: meet.totalMembers,
@@ -121,7 +113,6 @@ router.get('', async (req, res) => {
     res.status(200).json(response);
 });
 
-// Join group
 router.post('/:id/join', async (req, res) => {
     const groupId = req.params.id;
     const { userId } = req.body; 
@@ -130,7 +121,6 @@ router.post('/:id/join', async (req, res) => {
         const group = await Group.findById(groupId);
         if (!group) return res.status(404).json({ error: "Group not found" });
 
-        // Check if already a member
         if (group.members.includes(userId)) {
             return res.status(409).json({ error: "User is already a member" });
         }
@@ -141,13 +131,26 @@ router.post('/:id/join', async (req, res) => {
             $addToSet: { participants: userId } 
         });
         await Promise.all([updateGroup, updateChat]);
+        
+        if (group.createdBy.toString() !== userId) {
+            const userWhoJoined = await User.findById(userId);
+            
+            await Notification.create({
+                user: group.createdBy,
+                type: 'group_join',
+                title: 'Nuovo membro nel gruppo',
+                message: `${userWhoJoined.displayName} si è unito a "${group.groupName}"`,
+                relatedId: groupId,
+                isRead: false
+            });
+        }
+
         res.status(200).json({ message: "Joined successfully", groupId: groupId });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// leave group
 router.delete('/:id/leave', async (req, res) => {
     const groupId = req.params.id;
     const { userId } = req.body;
@@ -156,14 +159,12 @@ router.delete('/:id/leave', async (req, res) => {
         const group = await Group.findById(groupId);
         if (!group) return res.status(404).json({ error: "Group not found" });
 
-        // Avoid admin leaving group
         if (group.createdBy.toString() === userId) {
             return res.status(400).json({ 
                 error: "The group owner cannot leave. Delete the group." 
             });
         }
 
-        // Check if user is member
         if (!group.members.includes(userId)) {
             return res.status(400).json({ error: "User is not a member of this group" });
         }
@@ -189,6 +190,9 @@ router.post('', async (req, res) => {
     const userId = req.body.userId;
 
     try {
+        const creator = await User.findById(userId);
+        if (!creator) return res.status(404).json({ error: "User not found" });
+
         const newGroup = new Group({
             groupName: groupName,
             description, 
@@ -202,6 +206,7 @@ router.post('', async (req, res) => {
         });
 
         const newChat = new Chat({
+            isGroup: true,
             chatType: 'group',
             participants: [userId],
             groupName: groupName,
@@ -231,20 +236,19 @@ router.post('', async (req, res) => {
             members: [{      
                 userId: userId,
                 self: `/api/v1/users/${userId}`,
-                displayName: m.displayName,
-                uniqueName: m.uniqueName,
-                profilePicture: m.profilePicture 
+                displayName: creator.displayName,
+                uniqueName: creator.uniqueName,
+                profilePicture: creator.profilePicture 
             }],
             meetings: [] 
         };
 
-    res.location(`/api/v1/groups/${newGroup._id}`).status(201).json(response);
+        res.location(`/api/v1/groups/${newGroup._id}`).status(201).json(response);
     } catch (err) {
-        res.status(400).json({ errore: err.message });
+        res.status(400).json({ error: err.message });
     }
 });
 
-//Find group by ID
 router.get('/:id', async (req, res) =>{
     const groupId = req.params.id;
 
@@ -253,9 +257,9 @@ router.get('/:id', async (req, res) =>{
         .populate('members', '-password -__v')
         .populate({
             path: 'meetings',
-            match: { date: { $gte: new Date().toISOString().split('T')[0] } }, // Only future meetings  ( da vedere come salvare data su db)
+            match: { date: { $gte: new Date().toISOString().split('T')[0] } },
             options: {  
-                sort: { date: 1, time: 1 }, // Show upcoming meetings first 
+                sort: { date: 1, time: 1 }, 
             }
         })
         .exec();
@@ -267,6 +271,7 @@ router.get('/:id', async (req, res) =>{
     const result = {
         groupId: g._id,
         self: `/api/v1/groups/${g._id}`,
+        createdBy: g.createdBy,
         groupName: g.groupName,
         chatId: g.chatId,
         description: g.description ?? null,
@@ -275,20 +280,21 @@ router.get('/:id', async (req, res) =>{
         duration: g.duration,
         frequency: g.frequency,
         isRecruiting: g.isRecruiting,
+        createdBy: g.createdBy,
         creationDate: g.createdAt,
         membersCount: g.members.length,
         members: g.members.map(m => ({
             userId: m._id,
             self: `/api/v1/users/${m._id}`,
-            email: m.email         //altro??
+            email: m.email
         })),
-        meetings: g.meetings.map(meet => ({
+        meetings: g.meetings ? g.meetings.map(meet => ({
             meetingId: meet._id,
             groupId: g._id,
             self: `/api/v1/groups/${g._id}/meetings/${meet._id}`,
             date: meet.date,
             time: meet.time,
-            placeId: meet.placeId,
+            place: meet.place,
             description: meet.description ?? null,
             status: meet.status,
             totalMembers: meet.totalMembers,
@@ -299,7 +305,7 @@ router.get('/:id', async (req, res) =>{
                 changeProposal: vote.changeProposal ?? null,
                 respondedAt: vote.respondedAt
             })) : []
-        }))
+        })) : []
     };
 
     return res.status(200).json(result);
@@ -307,7 +313,6 @@ router.get('/:id', async (req, res) =>{
 
 router.patch('/:id', async (req, res) => {
     try {
-        // doesn't allow to manually change some fields
         const updates = req.body;
         delete updates._id;
         delete updates.createdBy;
@@ -323,7 +328,6 @@ router.patch('/:id', async (req, res) => {
         
         if (!group) return res.status(404).json({ error: "Group not found" });
 
-        // updates groupName both in group and chat
         if (updates.groupName && group.chatId) {
             await Chat.findByIdAndUpdate(group.chatId, { 
                 groupName: updates.groupName 
@@ -348,5 +352,22 @@ router.patch('/:id', async (req, res) => {
         res.status(400).json({ error: err.message });
     }
 })
+router.delete('/:id', async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const group = await Group.findById(groupId);
+        if (!group) {
+            return res.status(404).json({ error: "Group not found" });
+        }
+        if (group.chatId) {
+            await Chat.findByIdAndDelete(group.chatId);
+        }
+        await Group.findByIdAndDelete(groupId);
+
+        res.status(200).json({ message: "Group deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 export default router;
