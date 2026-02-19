@@ -1,29 +1,31 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import UserCard from '../components/UserCard.vue';
 import GroupCard from '../components/GroupCard.vue';
-import FriendCard from '../components/FriendCard.vue';
 
 const route = useRoute();
+const router = useRouter();
+
 const user = ref(null);
 const allGroups = ref([]); 
 const loading = ref(true);
 const activeTab = ref('joined');
 const myUserId = localStorage.getItem('userId');
 
-// RICERCA AMICI ------------------------------
+// FRIEND SEARCH ------------------------------
 const searchQuery = ref('');
 const searchResult = ref(null);
 const searchLoading = ref(false);
 const searchError = ref(null);
 const requestSent = ref(false);
 const pendingRequests = ref([]);
+
 const isMyProfile = computed(() => {
     return user.value && myUserId && user.value._id === myUserId;
 });
 
-// HELPER ID --------------------
+// ID HELPER --------------------
 const getIdFromGroup = (g) => {
     if (g._id) return g._id;
     if (g.id) return g.id;
@@ -31,7 +33,7 @@ const getIdFromGroup = (g) => {
     return null;
 };
 
-// COMPUTED ----------------------
+// COMPUTED PROPERTIES ----------------------
 const joinedGroups = computed(() => {
   if (!user.value || !allGroups.value.length) return [];
   const targetId = user.value._id;
@@ -53,38 +55,41 @@ const stats = computed(() => ({
   friends: friends.value.length
 }));
 
-// FUNZIONI FETCH ----------------------
-
+// FETCH FUNCTIONS ----------------------
 const loadData = async () => {
     loading.value = true;
     const userId = route.params.id;
     try {
         const userRes = await fetch(`http://localhost:8080/api/v1/users/${userId}`);
-        if (!userRes.ok) throw new Error('Utente non trovato');
+        if (!userRes.ok) throw new Error('User not found');
         user.value = await userRes.json();
 
         const groupsRes = await fetch('http://localhost:8080/api/v1/groups/feed');
         if (groupsRes.ok) allGroups.value = await groupsRes.json();
-    } catch (err) { console.error(err); } 
-    finally { loading.value = false; }
+    } catch (err) { 
+        console.error(err); 
+    } finally { 
+        loading.value = false; 
+    }
 };
 
-// FUNZIONI RICERCA AMICI --------------
-
+// FRIEND SEARCH FUNCTIONS --------------
 const handleSearchFriend = async () => {
     if (!searchQuery.value) return;
     searchLoading.value = true;
     searchError.value = null;
     searchResult.value = null;
     requestSent.value = false;
+    
     try {
         const res = await fetch(`http://localhost:8080/api/v1/users/search/handle?query=${searchQuery.value}`);
-        if (res.status === 404) throw new Error("Nessun utente trovato con questo username.");
-        if (!res.ok) throw new Error("Errore ricerca.");
+        if (res.status === 404) throw new Error("No user found with this username.");
+        if (!res.ok) throw new Error("Search error.");
         
         const data = await res.json();
-        if (data._id === myUserId) throw new Error("Sei tu! Non puoi aggiungerti.");
-        if (friends.value.some(f => f._id === data._id)) throw new Error("Siete già amici.");
+        if (data._id === myUserId) throw new Error("That's you! You cannot add yourself.");
+        if (friends.value.some(f => f._id === data._id)) throw new Error("You are already friends.");
+        
         searchResult.value = data;
     } catch (err) {
         searchError.value = err.message;
@@ -108,7 +113,7 @@ const sendFriendRequest = async () => {
         const data = await res.json();
         if (!res.ok) {
             if (res.status === 409) {
-                 alert("Richiesta già inviata o pendente!");
+                 alert("Request already sent or pending!");
                  requestSent.value = true;
                  return;
             }
@@ -117,7 +122,7 @@ const sendFriendRequest = async () => {
 
         requestSent.value = true;
     } catch (err) {
-        alert("Errore: " + err.message);
+        alert("Error: " + err.message);
     }
 };
 
@@ -129,9 +134,10 @@ const loadPendingRequests = async () => {
             pendingRequests.value = await res.json();
         }
     } catch (error) {
-        console.error("Errore caricamento richieste:", error);
+        console.error("Error loading requests:", error);
     }
 };
+
 const handleResponse = async (requestId, action, requester) => {
     try {
         const res = await fetch(`http://localhost:8080/api/v1/friends/respond/${requestId}`, {
@@ -140,21 +146,63 @@ const handleResponse = async (requestId, action, requester) => {
             body: JSON.stringify({ action })
         });
 
-        if (!res.ok) throw new Error("Errore operazione");
+        if (!res.ok) throw new Error("Operation error");
         pendingRequests.value = pendingRequests.value.filter(req => req._id !== requestId);
+        
         if (action === 'accept' && requester) {
             if (!user.value.savedFriends) user.value.savedFriends = [];
             user.value.savedFriends.push(requester);
         }
     } catch (error) {
-        alert("Errore: " + error.message);
+        alert("Error: " + error.message);
     }
 };
+
+// REMOVE FRIEND FUNCTION ----------------------
+const removeFriend = async (friendId) => {
+    if (!confirm("Are you sure you want to remove this user from your friends?")) return;
+    try {
+        const res = await fetch(`http://localhost:8080/api/v1/users/${myUserId}/friends/${friendId}`, {
+            method: 'DELETE'
+        });
+        if (res.ok) {
+            if (user.value && user.value.savedFriends) {
+                user.value.savedFriends = user.value.savedFriends.filter(f => f._id !== friendId);
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    }
+};
+
+// DELETE ACCOUNT FUNCTION ----------------------
+const deleteAccount = async () => {
+    const confirmed = confirm("WARNING: Do you really want to permanently delete your account? You will lose all your data.");
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch(`http://localhost:8080/api/v1/users/${myUserId}`, {
+            method: 'DELETE'
+        });
+
+        if (res.ok) {
+            localStorage.clear();
+            alert("Your account has been permanently deleted.");
+            router.push('/login');
+        } else {
+            alert("Error deleting the account.");
+        }
+    } catch (e) {
+        console.error("Network error:", e);
+    }
+};
+
 watch(activeTab, (newTab) => {
     if (newTab === 'friends' && isMyProfile.value) {
         loadPendingRequests();
     }
 });
+
 onMounted(async () => {
     await loadData();
     if (activeTab.value === 'friends' && isMyProfile.value) {
@@ -162,12 +210,12 @@ onMounted(async () => {
     }
 });
 
-onMounted(loadData);
 watch(() => route.params.id, () => {
     searchQuery.value = '';
     searchResult.value = null;
     loadData();
 });
+
 </script>
 
 <template>
@@ -188,20 +236,20 @@ watch(() => route.params.id, () => {
         />
 
         <div role="tablist" class="tabs tabs-boxed bg-white p-2 mb-6 shadow-sm border border-gray-200">
-            <a role="tab" class="tab" :class="{ 'tab-active bg-indigo-500 text-white font-bold': activeTab === 'joined' }" @click="activeTab = 'joined'">Iscritto ({{ joinedGroups.length }})</a>
-            <a role="tab" class="tab" :class="{ 'tab-active bg-indigo-500 text-white font-bold': activeTab === 'saved' }" @click="activeTab = 'saved'">Salvati ({{ savedGroups.length }})</a>
-            <a role="tab" class="tab" :class="{ 'tab-active bg-indigo-500 text-white font-bold': activeTab === 'friends' }" @click="activeTab = 'friends'">Amici ({{ friends.length }})</a>
+            <a role="tab" class="tab" :class="{ 'tab-active bg-indigo-500 text-white font-bold': activeTab === 'joined' }" @click="activeTab = 'joined'">Joined ({{ joinedGroups.length }})</a>
+            <a role="tab" class="tab" :class="{ 'tab-active bg-indigo-500 text-white font-bold': activeTab === 'saved' }" @click="activeTab = 'saved'">Saved ({{ savedGroups.length }})</a>
+            <a role="tab" class="tab" :class="{ 'tab-active bg-indigo-500 text-white font-bold': activeTab === 'friends' }" @click="activeTab = 'friends'">Friends ({{ friends.length }})</a>
         </div>
 
         <div v-if="activeTab === 'joined'" class="flex flex-col gap-4 animate-fade-in">
-            <div v-if="joinedGroups.length === 0" class="text-center py-10 text-gray-500">Non fai parte di nessun gruppo.</div>
+            <div v-if="joinedGroups.length === 0" class="text-center py-10 text-gray-500">You are not part of any group.</div>
             <GroupCard v-for="group in joinedGroups" :key="getIdFromGroup(group)" :id="getIdFromGroup(group)" 
                 :title="group.groupName" :description="group.description" :image="group.imageUrl || group.groupImage" 
                 :tags="group.tags" :members="group.members" :myUserId="myUserId" />
         </div>
 
         <div v-if="activeTab === 'saved'" class="flex flex-col gap-4 animate-fade-in">
-            <div v-if="savedGroups.length === 0" class="text-center py-10 text-gray-500">Nessun gruppo salvato.</div>
+            <div v-if="savedGroups.length === 0" class="text-center py-10 text-gray-500">No saved groups.</div>
             <GroupCard v-for="group in savedGroups" :key="getIdFromGroup(group)" :id="getIdFromGroup(group)" 
                 :title="group.groupName" :description="group.description" :image="group.imageUrl || group.groupImage" 
                 :tags="group.tags" :members="group.members" :myUserId="myUserId" />
@@ -210,13 +258,13 @@ watch(() => route.params.id, () => {
         <div v-if="activeTab === 'friends'" class="animate-fade-in">
             
             <div v-if="isMyProfile" class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-8">
-                <h3 class="font-bold text-gray-800 mb-3 text-lg">Aggiungi nuovi amici</h3>
+                <h3 class="font-bold text-gray-800 mb-3 text-lg">Add new friends</h3>
                 <div class="flex gap-2">
                     <input 
                         v-model="searchQuery" 
                         @keyup.enter="handleSearchFriend"
                         type="text" 
-                        placeholder="Cerca username (es. luigi)" 
+                        placeholder="Search username (e.g. luigi)" 
                         class="input input-bordered w-full focus:outline-none focus:border-indigo-500" 
                     />
                     <button 
@@ -225,7 +273,7 @@ watch(() => route.params.id, () => {
                         :disabled="searchLoading"
                     >
                         <span v-if="searchLoading" class="loading loading-spinner"></span>
-                        <span v-else>Cerca</span>
+                        <span v-else>Search</span>
                     </button>
                 </div>
 
@@ -241,12 +289,12 @@ watch(() => route.params.id, () => {
                     </div>
                     
                     <div>
-                        <button v-if="!requestSent" @click="sendFriendRequest" class="btn btn-sm bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-transparent transition-all">
-                            Invia Richiesta
+                        <button v-if="!requestSent" @click="sendFriendRequest" class="btn px-4 btn-sm bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-transparent transition-all">
+                            Send Request
                         </button>
                         <span v-else class="text-green-600 font-bold text-sm flex items-center gap-1 bg-green-50 px-3 py-1 rounded-full border border-green-200">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-                            Inviata
+                            Sent
                         </span>
                     </div>
                 </div>
@@ -254,7 +302,7 @@ watch(() => route.params.id, () => {
 
             <div v-if="isMyProfile && pendingRequests.length > 0" class="mb-8">
                 <h3 class="font-bold text-gray-800 mb-3 text-lg flex items-center gap-2">
-                    Richieste in arrivo 
+                    Pending Requests
                     <span class="badge badge-primary badge-sm text-white">{{ pendingRequests.length }}</span>
                 </h3>
                 
@@ -264,16 +312,16 @@ watch(() => route.params.id, () => {
                             <img :src="req.requester.profilePicture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'" class="w-12 h-12 rounded-full object-cover">
                             <div>
                                 <p class="font-bold text-gray-900">{{ req.requester.displayName }}</p>
-                                <p class="text-xs text-gray-500">vuole essere tuo amico</p>
+                                <p class="text-xs text-gray-500">wants to be your friend</p>
                             </div>
                         </div>
 
                         <div class="flex gap-2">
-                            <button @click="handleResponse(req._id, 'accept', req.requester)" class="btn btn-sm btn-success text-black">
-                                Accetta
+                            <button @click="handleResponse(req._id, 'accept', req.requester)" class="btn px-6 btn-sm bg-green-600 text-white hover:bg-green-700 border-none shadow-sm">
+                                Accept
                             </button>
-                            <button @click="handleResponse(req._id, 'reject', null)" class="btn btn-sm btn-ghost text-gray-500 hover:bg-gray-100">
-                                Rifiuta
+                            <button @click="handleResponse(req._id, 'reject', null)" class="btn px-4 btn-sm bg-gray-200 text-gray-700 hover:bg-gray-300 border-none shadow-sm">
+                                Reject
                             </button>
                         </div>
                     </div>
@@ -282,13 +330,47 @@ watch(() => route.params.id, () => {
             </div>
 
             <div v-if="friends.length === 0" class="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300">
-                <p class="text-gray-500">Non hai ancora aggiunto nessun amico.</p>
-                <p class="text-sm text-gray-400 mt-1">Usa la barra sopra per cercarli!</p>
+                <p class="text-gray-500">You haven't added any friends yet.</p>
+                <p class="text-sm text-gray-400 mt-1">Use the search bar above to find them!</p>
             </div>
             
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FriendCard v-for="friend in friends" :key="friend._id" :friend="friend" />
+                <div v-for="friend in friends" :key="friend._id" class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between transition-shadow hover:shadow-md">
+                    <div class="flex items-center gap-3">
+                        <img :src="friend.profilePicture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'" class="w-12 h-12 rounded-full object-cover border border-gray-100">
+                        <div>
+                            <p class="font-bold text-gray-900">{{ friend.displayName }}</p>
+                            <p class="text-xs text-gray-500">@{{ friend.uniqueName }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button 
+                            v-if="isMyProfile" 
+                            @click="removeFriend(friend._id)" 
+                            class="btn px-6 btn-sm bg-red-600 hover:bg-red-700 text-white border-none shadow-sm"
+                        >
+                            Remove
+                        </button>
+                        <button 
+                            @click="router.push(`/user/${friend._id}`)" 
+                            class="btn px-6 btn-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-none shadow-sm"
+                        >
+                            Visit Profile
+                        </button>
+                    </div>
+                </div>
             </div>
+        </div>
+
+        <div v-if="isMyProfile" class="mt-12 pt-8 border-t border-gray-200 flex flex-col items-center">
+            <h3 class="font-bold text-red-600 mb-4 text-xl">Danger Zone</h3>
+            <button @click="deleteAccount" class="btn bg-red-600 hover:bg-red-700 text-white border-none w-full max-w-sm shadow-md">
+                Permanently Delete Account
+            </button>
+            <p class="text-xs text-gray-400 mt-2 text-center max-w-sm">
+                Once you delete your account, there is no going back. Please be certain.
+            </p>
         </div>
 
       </div>

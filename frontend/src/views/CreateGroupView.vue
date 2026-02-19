@@ -3,9 +3,9 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
+const myUserId = localStorage.getItem('userId');
 
 const form = ref({
-    userId: '',
     groupName: '',
     tags: '',
     duration: '',
@@ -17,17 +17,23 @@ const form = ref({
 const loading = ref(false);
 const error = ref(null);
 
+onMounted(() => {
+    if (!myUserId) {
+        alert("need to be logged in to create a group");
+        router.push('/login');
+    }
+});
+
 async function createGroup() {
     loading.value = true;
     error.value = null;
 
     try {
-
         // Transforms tags separated by comma to array of tags
         const tagsArray = form.value.tags ? form.value.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
 
         const payload = {
-            userId: form.value.userId, // momentaneo
+            userId: myUserId,
             groupName: form.value.groupName,
             description: form.value.description || null,
             imageUrl: form.value.imageUrl,
@@ -47,18 +53,19 @@ async function createGroup() {
 
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.message || `Errore  server: ${response.status}`);
+            throw new Error(errData.error || errData.message || `Errore server: ${response.status}`);
         }
 
-        // if successful return to home 
-        router.push('/');
+        const newGroup = await response.json();
+
+        // Se va a buon fine, navighiamo direttamente alla pagina del nuovo gruppo (oppure alla home)
+        router.push(`/groups/${newGroup.groupId || newGroup._id}`);
     } catch (err) {
-        console.err("Error during group creation:", err);
-        error.value = err.message || "Impossible to create group";
+        console.error("Error during group creation:", err);
+        error.value = err.message || "Impossibile creare il gruppo";
     } finally {
         loading.value = false;
     }
-
 }
 </script>
 
@@ -75,20 +82,7 @@ async function createGroup() {
                 </div>
         
                 <form @submit.prevent="createGroup" class="flex flex-col gap-4">
-                    <!-- momentaneo -->
-                    <div class="form-control w-full">
-                        <label class="label">
-                            <span class="label-text font-semibold">UserId *</span>
-                        </label>
-                        <input 
-                        v-model="form.userId" 
-                        type="text" 
-                        placeholder="" 
-                        class="input input-bordered w-full" 
-                        required
-                        />
-                    </div>
-                
+                    
                     <div class="form-control w-full">
                         <label class="label">
                             <span class="label-text font-semibold">Group name *</span>
@@ -166,9 +160,9 @@ async function createGroup() {
                     </div>
 
                     <div class="card-actions justify-end mt-6">
-                        <button type="button" class="btn btn-primary bg-rose-400 hover:bg-rose-500 px-2 " @click="router.back()">Cancel</button>
+                        <button type="button" class="btn btn-primary bg-rose-400 hover:bg-rose-500 px-2 border-none" @click="router.back()">Cancel</button>
                         
-                        <button type="submit" class="btn btn-primary bg-green-400 hover:bg-green-500 px-2" :disabled="loading">
+                        <button type="submit" class="btn btn-primary bg-green-400 hover:bg-green-500 px-2 border-none" :disabled="loading">
                             <span v-if="loading" class="loading loading-spinner"></span>
                             {{ loading ? 'Saving...' : 'Create Group' }}
                         </button>

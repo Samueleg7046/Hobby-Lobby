@@ -1,6 +1,7 @@
 import express from 'express';
 import User from './models/user.js';
 import FriendRequest from './models/friendRequest.js';
+import Notification from './models/notification.js';
 
 const router = express.Router();
 router.post('/request', async (req, res) => {
@@ -33,6 +34,14 @@ router.post('/request', async (req, res) => {
             recipient: recipientId
         });
         await newRequest.save();
+        await Notification.create({
+            user: recipientId, // Chi riceve la notifica
+            type: 'friend_request',
+            title: 'Nuova richiesta di amicizia',
+            message: `${user.displayName} vuole essere tuo amico.`,
+            relatedId: newRequest._id,
+            isRead: false
+        });
         res.status(201).json({ message: "Richiesta inviata", request: newRequest });
 
     } catch (error) {

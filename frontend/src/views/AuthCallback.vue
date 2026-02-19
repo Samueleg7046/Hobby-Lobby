@@ -21,7 +21,7 @@ onMounted(() => {
 <template>
   <div class="flex justify-center items-center h-screen">
     <div class="text-xl font-semibold text-gray-600">
-      Autenticazione in corso... 🔄
+      Authenticating... 🔄
     </div>
   </div>
 </template>

@@ -81,17 +81,17 @@ const userHobbies = computed(() => props.user?.hobbies || []);
             alt="Profile"
           >
           <div v-if="isEditing" class="w-full max-w-xs">
-              <label class="label pb-1"><span class="label-text text-xs">URL Immagine</span></label>
+              <label class="label pb-1"><span class="label-text text-xs">Profile Picture URL</span></label>
               <input v-model="formData.profilePicture" type="text" placeholder="https://..." class="input input-bordered input-xs w-full" />
           </div>
       </div>
       
       <div class="flex-1 w-full">
         <div v-if="!isEditing">
-            <h1 class="text-2xl font-bold text-gray-900">{{ user?.displayName || 'Utente' }}</h1>
+            <h1 class="text-2xl font-bold text-gray-900">{{ user?.displayName || 'User' }}</h1>
             <p class="text-sm text-gray-500">@{{ user?.uniqueName }}</p>
             <p class="mt-3 text-gray-700 whitespace-pre-line leading-relaxed">
-              {{ user?.description || 'Nessuna descrizione inserita.' }}
+              {{ user?.description || 'No description added.' }}
             </p>
             <div class="flex flex-wrap gap-2 mt-4" v-if="userHobbies.length > 0">
               <span v-for="hobby in userHobbies" :key="hobby" class="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full border border-indigo-100">
@@ -102,24 +102,24 @@ const userHobbies = computed(() => props.user?.hobbies || []);
 
         <div v-else class="flex flex-col gap-3 animate-fade-in w-full">
             <div>
-                <label class="label py-1"><span class="label-text font-bold">Nome Visualizzato</span></label>
+                <label class="label py-1"><span class="label-text font-bold">Display Name</span></label>
                 <input v-model="formData.displayName" type="text" class="input input-bordered input-sm w-full font-bold" />
             </div>
             <div>
-                <label class="label py-1"><span class="label-text font-bold">Descrizione</span></label>
+                <label class="label py-1"><span class="label-text font-bold">Description</span></label>
                 <textarea v-model="formData.description" class="textarea textarea-bordered w-full" rows="3"></textarea>
             </div>
             <div>
-                <label class="label py-1"><span class="label-text font-bold">Hobby (separati da virgola)</span></label>
+                <label class="label py-1"><span class="label-text font-bold">Hobby (separated by commas)</span></label>
                 <input v-model="formData.hobbiesString" type="text" class="input input-bordered input-sm w-full" />
             </div>
             <div class="flex gap-2 mt-2 justify-end">
               <button 
                 @click="cancelEditing" 
-                class="btn btn-sm btn-ghost text-gray-500 hover:bg-gray-100" 
+                class="btn px-4 btn-sm btn-ghost text-gray-500 hover:bg-gray-100" 
                 :disabled="loading"
               >
-                Annulla
+                Cancel
               </button>
     
               <button 
@@ -128,7 +128,7 @@ const userHobbies = computed(() => props.user?.hobbies || []);
                   :disabled="loading"
               >
                 <span v-if="loading" class="loading loading-spinner loading-xs"></span>
-                Salva
+                Save
               </button>
             </div>
         </div>
@@ -149,11 +149,11 @@ const userHobbies = computed(() => props.user?.hobbies || []);
 
         <div>
           <span class="block font-bold text-xl text-indigo-600">{{ stats.groups }}</span>
-          <span class="text-xs text-gray-500 uppercase tracking-wide">Gruppi</span>
+          <span class="text-xs text-gray-500 uppercase tracking-wide">Groups</span>
         </div>
         <div>
           <span class="block font-bold text-xl text-indigo-600">{{ stats.friends }}</span>
-          <span class="text-xs text-gray-500 uppercase tracking-wide">Amici</span>
+          <span class="text-xs text-gray-500 uppercase tracking-wide">Friends</span>
         </div>
       </div>
 

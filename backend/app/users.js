@@ -259,4 +259,46 @@ router.get('/search/handle', async (req, res) => {
     }
 });
 
+router.get('/:id/friends', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id)
+            .populate('savedFriends', 'displayName uniqueName profilePicture'); // Prendi solo i dati che servono
+        
+        if (!user) return res.status(404).json({ message: "Utente non trovato" });
+
+        res.json(user.savedFriends || []);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// RIMUOVI AMICIZIA
+router.delete('/:id/friends/:friendId', async (req, res) => {
+    try {
+        const { id, friendId } = req.params;
+        await User.findByIdAndUpdate(id, { $pull: { savedFriends: friendId } });
+        await User.findByIdAndUpdate(friendId, { $pull: { savedFriends: id } });
+        
+        res.status(200).json({ message: "Amicizia rimossa con successo" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ELIMINA ACCOUNT
+router.delete('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedUser = await User.findByIdAndDelete(id);
+        
+        if (!deletedUser) {
+            return res.status(404).json({ error: "Utente non trovato" });
+        }
+        
+        res.status(200).json({ message: "Account eliminato definitivamente" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

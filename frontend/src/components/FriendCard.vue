@@ -9,7 +9,7 @@ const props = defineProps({
   }
 });
 
-const displayName = computed(() => props.friend?.displayName || 'Utente sconosciuto');
+const displayName = computed(() => props.friend?.displayName || 'Unknown User');
 const uniqueName = computed(() => props.friend?.uniqueName || 'user');
 const avatarUrl = computed(() => props.friend?.profilePicture || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png');
 const friendId = computed(() => props.friend?._id);
@@ -29,7 +29,7 @@ const friendId = computed(() => props.friend?._id);
       :to="`/user/${friendId}`" 
       class="btn btn-sm btn-ghost text-indigo-600 hover:bg-indigo-50"
     >
-      Visita
+      Visit Profile
     </router-link>
   </div>
 </template>
