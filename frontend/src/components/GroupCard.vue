@@ -18,6 +18,13 @@ const router = useRouter();
 // checks if already member
 const isJoined = computed(() => {
     if (!props.members) return false;
+
+    // DEBUG
+    if (props.title.includes("NomeDelTuoGruppo")) {
+        console.log(`DEBUG CARD "${props.title}"`);
+        console.log("Members received:", props.members);
+        console.log("My ID:", props.myUserId);
+    }
     
     return props.members.some(m => {
         if (typeof m === 'string') return m === props.myUserId;
@@ -51,7 +58,7 @@ const goToGroup = () => {
                 </h2>
                 <div v-if="isJoined" class="badge badge-success text-white font-bold gap-1 shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                    SUBSCIBED
+                    SUBSCRIBED
                 </div>
             </div>
 
