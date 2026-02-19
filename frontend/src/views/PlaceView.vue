@@ -1,38 +1,19 @@
 <script setup>
-import GroupCard from '../components/GroupCard.vue';
 import PlaceCard from '../components/PlaceCard.vue';
 import { ref, onMounted, onActivated } from 'vue';
 
-const groups = ref([]);
+const place = ref([]);
 const loading = ref(true);
 const error = ref(null);
 
-// AUTH
-const isLoggedIn = ref(false);
-const myUserId = ref(null);
-const myUserName = ref('');
+//const myUserId = "6988e6a7c5caf3ad6a3af73b" // momentaneo
 
-const checkAuth = () => {
-  const token = localStorage.getItem('token');
-  const userId = localStorage.getItem('userId');
-  const userName = localStorage.getItem('userName');
-
-  if (token && userId) {
-    isLoggedIn.value = true;
-    myUserId.value = userId;
-    myUserName.value = userName;
-  } else {
-    isLoggedIn.value = false;
-    myUserId.value = null;
-  }
-};
-
-async function fetchGroups() {
+async function fetchPlaces() {
   try {
     loading.value = true;
     error.value = null;
  
-    const response = await fetch('http://localhost:8080/api/v1/groups/feed');
+    const response = await fetch('http://localhost:8080/api/v1/places');
 
     if (!response.ok) {
       throw new Error(`Server error: ${response.status}`);
@@ -40,27 +21,24 @@ async function fetchGroups() {
 
   const data = await response.json();
 
-  groups.value = data;
+  place.value = data;
 
-  // DEBUG
-  console.log("Gruppi caricati:", data);
+  // DEBUG 
+  console.log("Luoghi caricati:", data);
   } catch (err) {
     console.error("Fetch error: ", err);
-    error.value = "Failed to load groups."
+    error.value = "Failed to load places."
   } finally {
     loading.value = false;
   }
 }
 
 onMounted(() => {
-  checkAuth();
-  fetchGroups();
+  fetchPlaces();
 });
 
-// rafresh data when coming back to this page
 onActivated(() => {
-  checkAuth();
-  fetchGroups();
+    fetchPlaces();
 });
 </script>
 
@@ -90,20 +68,20 @@ onActivated(() => {
           </div>
 
           <div v-else-if="groups.length === 0" class="text-center py-10">
-            <p class="text-gray-500 lext-lg">No groups found yet.</p>
+            <p class="text-gray-500 lext-lg">Nessun posto trovato</p>
           </div>
 
-          <GroupCard 
+          <PlaceCard 
             v-else
-            v-for="group in groups" 
-            :key="group.self"
-            :id="group.self.split('/').pop()"
-            :title="group.groupName"
-            :description="group.description"
-            :image="group.imageUrl"
-            :tags="group.tags" 
-            :members="group.members"
-            :myUserId="myUserId"
+            v-for="place in places" 
+            :key="place.self"
+            :id="place.self.split('/').pop()"
+            :name="place.name"
+            :addres="place.address"
+            :openingTime="place.address"
+            :closingTime="place.closingTime"
+            :tags="place.tags"
+            :description="place.description"
           />
         </div>
       </div>
@@ -111,7 +89,7 @@ onActivated(() => {
 
     <div class="drawer-side is-drawer-close:hidden z-50">
       <label for="my-drawer-home" aria-label="close sidebar" class="drawer-overlay"></label>
-        <!-- Sidebar content here -->
+                <!-- Sidebar content here -->
         <ul class="menu min-h-full w-80 p-4 text-base-content shadow-xl bg-base-100">
           <!-- List item -->
           <h2 class="text-xl font-bold mb-4">Menu</h2>
@@ -126,13 +104,6 @@ onActivated(() => {
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" fill="none" stroke="currentColor" class="my-1.5 inline-block size-4 justify-center"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
               <span class="is-drawer-close:hidden">Homepage</span>
           </a></li>
-          <li><a>Sidebar Item 2</a></li>
-          <li>
-            <router-link to="/chat">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-              Chat
-            </router-link>
-          </li>
          
           <li>
             <a href="/place" class="flex items-center gap-2"> 
@@ -146,7 +117,6 @@ onActivated(() => {
               <span class="is-drawer-close:hidden">Places</span>
             </a>
           </li>
-          
         </ul>
     </div>
   </div>

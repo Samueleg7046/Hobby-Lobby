@@ -6,7 +6,8 @@ import Notification from './models/notification.js';
 
 const router = express.Router();
 
-router.get('/feed', async (req, res) => {  
+// feed dei places
+router.get('/feed', async (req, res) => {  // da aggiungere logica per recommended
     const {filter, tags } = req.query;
 
     let query = { isRecruiting: true };
@@ -24,9 +25,9 @@ router.get('/feed', async (req, res) => {
         groups.sort((a, b) => b.createdAt - a.createdAt);
     }
 
-    if (!groups || groups.length === 0) {
-        return res.status(204).end();
-    }
+        if (!groups || groups.length === 0) {
+            return res.status(200).json([]);
+        }
 
     const response = groups.map(g => ({
         self: `/api/v1/groups/${g._id}`,
@@ -95,7 +96,7 @@ router.get('', async (req, res) => {
             self: `/api/v1/groups/${g._id}/meetings/${meet._id}`,
             date: meet.date,
             time: meet.time,
-            placeId: meet.placeId,
+            place: meet.place,
             description: meet.description ?? null,
             status: meet.status,
             totalMembers: meet.totalMembers,
@@ -244,7 +245,7 @@ router.post('', async (req, res) => {
 
         res.location(`/api/v1/groups/${newGroup._id}`).status(201).json(response);
     } catch (err) {
-        res.status(400).json({ errore: err.message });
+        res.status(400).json({ error: err.message });
     }
 });
 
@@ -279,6 +280,7 @@ router.get('/:id', async (req, res) =>{
         duration: g.duration,
         frequency: g.frequency,
         isRecruiting: g.isRecruiting,
+        createdBy: g.createdBy,
         creationDate: g.createdAt,
         membersCount: g.members.length,
         members: g.members.map(m => ({
@@ -286,13 +288,13 @@ router.get('/:id', async (req, res) =>{
             self: `/api/v1/users/${m._id}`,
             email: m.email
         })),
-        meetings: g.meetings.map(meet => ({
+        meetings: g.meetings ? g.meetings.map(meet => ({
             meetingId: meet._id,
             groupId: g._id,
             self: `/api/v1/groups/${g._id}/meetings/${meet._id}`,
             date: meet.date,
             time: meet.time,
-            placeId: meet.placeId,
+            place: meet.place,
             description: meet.description ?? null,
             status: meet.status,
             totalMembers: meet.totalMembers,
@@ -303,7 +305,7 @@ router.get('/:id', async (req, res) =>{
                 changeProposal: vote.changeProposal ?? null,
                 respondedAt: vote.respondedAt
             })) : []
-        }))
+        })) : []
     };
 
     return res.status(200).json(result);

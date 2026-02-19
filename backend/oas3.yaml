@@ -10,6 +10,21 @@ servers:
     description: Localhost
 
 paths: 
+  /places/feed:
+    get:
+      summary: Get public feed of places
+      responses:
+        '200':
+          description: List of places found
+          content: 
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: "#/components/schemas/PlaceResponse"
+        '204': 
+          description: No groups available for selected filters
+
   /places:
     get:
       summary: Get list of places
@@ -63,7 +78,7 @@ paths:
         '404':
           description: Place not found
 
-  /places/{place_id}/review:
+  /places/{place_id}/reviews:
     post:
       summary: Create a new review for a place
       parameters:
@@ -151,13 +166,93 @@ paths:
         '200': 
           description: List of flags obtained
           content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FlagResponse"
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/FlagResponse"
         '404': 
           description: User not found
 
-  /places/{place_id}/review/{review_id}:
+  /users/{user_id}/flags/{flag_id}:
+    get:
+      summary: Get details of a flag
+      parameters:
+        - in: path 
+          name: user_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: flag_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Flag obtained
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlagResponse"
+        '404':
+          description: Flag doesn't exist
+    patch:
+      summary: Partially change a flag
+      parameters:
+        - in: path 
+          name: user_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: flag_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlagCreateResponse"
+      responses:
+        '200':
+          description: Flag modified
+          content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/FlagResponse"
+        '404':
+          description: Flag doesn't exist
+        '401':
+          description: User not Authenticated
+        '403':
+          description: User not Authorized
+    delete:
+      summary: Delete flag from user
+      parameters:
+        - in: path 
+          name: user_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: flag_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Flag deleted
+        '401':
+          description: User not Authenticated
+        '403':
+          description: User not Authorized
+        '404':
+          description: Flag not found
+
+  /places/{place_id}/reviews/{review_id}:
     get:
       summary: Get details of a review
       parameters:
@@ -1102,15 +1197,11 @@ components:
     PlaceCreateRequest: 
       type: object
       required:
-        - placeID
         - placeName
         - indirizzo
         - orarioApertura
         - orarioChiusura
       properties:
-        placeID: 
-          type: string
-          description: ID of the place
         placeName:
           type: string
           description: Name of the place
@@ -1122,7 +1213,6 @@ components:
           description: list of tags associated with the place
           items:
             type: string
-          minItems: 1
         descrizione_luogo:
           type: string
           description: description of the place
@@ -1142,6 +1232,7 @@ components:
       type: object
       required: 
       - placeID
+      - media_recensioni
       - placeName
       - attivita
       - tags
@@ -1149,6 +1240,7 @@ components:
       - orarioApertura
       - orarioChiusura
       - indirizzo
+      - self
       properties:
         placeID: 
           type: string
@@ -1196,6 +1288,9 @@ components:
           nullable: true
           items:
             $ref: "#/components/schemas/PlaceReviewResponse"
+        self:
+          type: string
+          description: Link to group
         
     PlaceCreateReview:
       type: object
@@ -1206,9 +1301,9 @@ components:
         - valutazione
       properties: 
         placeID:
-          type: number
+          type: string
         userID: 
-          type: number
+          type: string
         description:
           type: string
         valutazione: 
@@ -1224,9 +1319,9 @@ components:
         - description
       properties: 
         placeID:
-          type: number
+          type: string
         userID: 
-          type: number
+          type: string
         description:
           type: string
           nullable: true
@@ -1239,9 +1334,9 @@ components:
       minProperties: 1
       properties: 
         placeID:
-          type: number
+          type: string
         userID: 
-          type: number
+          type: string
         description:
           type: string
         valutazione: 
@@ -1258,9 +1353,9 @@ components:
         motivazione:
           type: string
         operatore_ID:
-         type: number
+         type: string
         utente_ID:
-         type: number
+         type: string
 
     FlagResponse:
       type: object
@@ -1272,9 +1367,9 @@ components:
         motivazione:
           type: string
         operatore_ID:
-         type: number
+         type: string
         utente_ID:
-         type: number
+         type: string
 
     GroupCreateRequest:
       type: object
@@ -1407,7 +1502,7 @@ components:
       required:
         - date
         - time
-        - placeId 
+        - place
       properties:
         date:
           type: string
@@ -1415,7 +1510,7 @@ components:
         time:
           type: string
           format: time
-        placeId:
+        place:
           type: string 
         description:
           type: string
@@ -1434,7 +1529,7 @@ components:
         - createdBy
         - date
         - time
-        - placeId
+        - place
         - status
         - totalMembers
         - currentVotes
@@ -1451,7 +1546,7 @@ components:
         time:
           type: string
           format: time
-        placeId:
+        place:
           type: string
         description:
           type: string
@@ -1497,7 +1592,7 @@ components:
           type: string
           format: time
           nullable: true
-        placeId: 
+        place: 
           type: string
           nullable: true
 
@@ -1526,7 +1621,7 @@ components:
               type: string
               format: time
               nullable: true
-            placeId:
+            place:
               type: string
               nullable: true
         respondedAt: 
@@ -1553,7 +1648,7 @@ components:
               type: string
               format: time
               nullable: true
-            placeId:
+            place:
               type: string
               nullable: true
 

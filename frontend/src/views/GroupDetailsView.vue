@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import MeetingCard from '../components/MeetingCard.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -8,13 +9,23 @@ const router = useRouter();
 const group = ref(null);
 const loading = ref(true);  
 const joinLoading = ref(false);
+
+const createMeetingModal = ref(null); 
 const saveLoading = ref(false);
 const error = ref(null);
+
 
 const showToast = ref(false);
 const toastMessage = ref('');
 const toastType = ref('success');
 
+
+const newMeeting = ref({
+    date: '',
+    time: '',
+    place: '',
+    description: ''
+});
 const myUserId = localStorage.getItem('userId');
 const isSaved = ref(false);
 
@@ -48,6 +59,17 @@ const goToGroupChat = () => {
     }
 };
 
+// check if admin
+const isCreator = computed(() => {
+    if (!group.value || !group.value.createdBy) return false;
+    const creatorId = typeof group.value.createdBy === 'object' 
+        ? group.value.createdBy.toString() 
+        : group.value.createdBy;
+
+    return creatorId === myUserId;
+});
+
+// function that shows info about joined/left groups
 const triggerToast = (message, type = 'success') => {
     toastMessage.value = message;
     toastType.value = type;
@@ -130,8 +152,8 @@ const handleJoin = async () => {
         });
 
         if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error || "Operation error");
+            const errJson = await response.json().catch(() => ({}));
+            throw new Error(errJson.error || "Error during operation")
         }
 
         if (action === 'join') {
@@ -145,6 +167,7 @@ const handleJoin = async () => {
             triggerToast("You left the group", "info");
         }
     } catch (error) {
+        console.error(error);
         alert("Error: " + error.message);
     } finally {
         joinLoading.value = false;
@@ -226,6 +249,106 @@ const deleteGroup = async () => {
         router.push('/');
     } catch (error) {
         alert("Error: " + error.message);
+
+// create meeting
+const createMeeting = async () => {
+    if (!newMeeting.value.date || !newMeeting.value.time) {
+        triggerToast("Please select both date and time", "error");
+        return;
+    }
+
+    try {
+            const res = await fetch(`http://localhost:8080/api/v1/groups/${group.value.groupId}/meetings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: myUserId,
+                date: newMeeting.value.date, 
+                time: newMeeting.value.time, 
+                place: newMeeting.value.place,
+                description: newMeeting.value.description
+            })
+        });
+
+        if (res.ok) {
+            newMeeting.value = { date: '', time: '', place: '', description: '' }; // Reset
+            createMeetingModal.value.close();
+
+            triggerToast("Meeting successfully created!", "success");
+            await fetchGroupData(); // Refresh data
+        } else {
+            const errData = await res.json();
+            throw new Error(errData.error || "Error during creation");        }
+    } catch (e) {
+        triggerToast("Errore during meeting creation", "error");
+    }
+};
+
+// vote/propose change
+const handleVote = async ({ meetingId, response, changeProposal }) => {
+    try {
+        const gid = group.value.groupId;
+        const body = { userId: myUserId, response }; 
+        if (changeProposal) body.changeProposal = changeProposal;
+
+        const res = await fetch(`http://localhost:8080/api/v1/groups/${gid}/meetings/${meetingId}/vote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            triggerToast("Vote saved!", "success");
+            await fetchGroupData();
+        }
+    } catch (e) {
+        console.error(e);
+    }
+};
+
+// admin can update status of meeting
+const handleStatusUpdate = async (meetingId, newStatus) => {
+    try {
+        const res = await fetch(`http://localhost:8080/api/v1/groups/${group.value.groupId}/meetings/${meetingId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: myUserId, status: newStatus })
+        });
+
+        if (res.ok) {
+            // update meeting
+            const targetMeeting = group.value.meetings.find(m => 
+                m.meetingId === meetingId || m._id === meetingId
+            );
+
+            if (targetMeeting) {
+                targetMeeting.status = newStatus;
+                console.log(`UI Aggiornata localmente: ${meetingId} -> ${newStatus}`);
+            }
+        }
+    } catch (e) {
+        console.error("Error during update:", e);
+    }
+};
+
+// admin permanently deletes meeting
+const handleDelete = async (meetingId) => {
+    if(!confirm("Do you really want to delete the meeting?")) return;
+    try {
+        const res = await fetch(`http://localhost:8080/api/v1/groups/${group.value.groupId}/meetings/${meetingId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: myUserId })
+        });
+        
+        if (res.ok) {
+            triggerToast("Meeting deleted", "info");
+            if(group.value.meetings) {
+                group.value.meetings = group.value.meetings.filter(m => m.meetingId !== meetingId);
+            }
+        }
+    } catch (e) {
+        console.error(e);
     }
 };
 
@@ -292,6 +415,35 @@ onMounted(async () => {
                 <div class="card bg-base-100 shadow-xl p-6">
                     <h2 class="text-2xl font-bold mb-4">Description</h2>
                     <p class="text-lg leading-relaxed text-gray-700">{{ group.description }}</p>
+                </div>
+                <div class="mt-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold">Meetings</h2>
+                        <button v-if="isCreator" @click="createMeetingModal.showModal()" class="btn btn-sm bg-green-400 hover:bg-green-500 px-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            New meeting
+                        </button>
+                    </div>
+
+                    <div v-if="group.meetings && group.meetings.length > 0">
+                        <MeetingCard 
+                            v-for="meeting in group.meetings"
+                            :key="meeting.meetingId"
+                            :meeting="meeting"
+                            :isCreator="isCreator"
+                            :myUserId="myUserId"
+                            :isMember="isJoined"
+                            @vote="handleVote"
+                            @confirm="(id) => handleStatusUpdate(id, 'confirmed')"
+                            @reject="(id) => handleStatusUpdate(id, 'rejected')"
+                            @delete="handleDelete"
+                        />
+                    </div>
+                    <div v-else class="text-center py-10 text-gray-400 bg-base-100 rounded-xl border-dashed border-2">
+                        No meetings planned
+                    </div>
                 </div>
             </div>
             <div class="space-y-6">
@@ -361,4 +513,24 @@ onMounted(async () => {
             <span>{{ toastMessage }}</span>
         </div>
     </div>
+
+    <dialog ref="createMeetingModal" id="create_modal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg">Create New Meeting</h3>
+            
+            <div class="py-4 space-y-4">
+                <input type="date" v-model="newMeeting.date" class="input input-bordered w-full" />
+                <input type="time" v-model="newMeeting.time" class="input input-bordered w-full" />
+                <input type="place" placeholder="e.g Library" v-model="newMeeting.place" class="input input-bordered w-full" />
+                <textarea placeholder="Description" v-model="newMeeting.description" class="textarea textarea-bordered w-full"></textarea>
+            </div>
+
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn btn-primary bg-rose-400 hover:bg-rose-500 px-2">Close</button>
+                </form>
+                <button class="btn btn-primary bg-green-400 hover:bg-green-500 px-2" @click="createMeeting">Create</button>
+            </div>
+        </div>
+    </dialog>
 </template>
