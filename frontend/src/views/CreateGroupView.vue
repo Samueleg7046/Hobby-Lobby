@@ -163,7 +163,7 @@ async function createGroup() {
                         class="input input-bordered w-full" 
                         required
                         />
-                    </div>
+                    </div> 
 
                     <div class="card-actions justify-end mt-6">
                         <button type="button" class="btn btn-primary bg-rose-400 hover:bg-rose-500 px-2 " @click="router.back()">Cancel</button>

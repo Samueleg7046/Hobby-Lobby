@@ -160,7 +160,7 @@ async function createPlace() {
                         
                         <button type="submit" class="btn btn-primary bg-green-400 hover:bg-green-500 px-2" :disabled="loading">
                             <span v-if="loading" class="loading loading-spinner"></span>
-                            {{ loading ? 'Saving...' : 'Create Group' }}
+                            {{ loading ? 'Saving...' : 'Create Place' }}
                         </button>
                     </div>
 

@@ -4,6 +4,7 @@ import GroupDetailsView from '../views/GroupDetailsView.vue'
 import CreateGroupView from '@/views/CreateGroupView.vue'
 import PlaceDetailsView from '../views/PlaceDetailsView.vue'
 import CreatePlaceView from '@/views/CreatePlaceView.vue'
+import CreateReview from '@/views/CreateReview.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -33,6 +34,12 @@ const router = createRouter({
       path: '/place/:id',
       name: 'placeDetails',
       component: PlaceDetailsView,
+      props: true
+    },
+    {
+      path: '/place/:id/review',
+      name: 'reviewCreate',
+      component: CreateReview,
       props: true
     },
   ]
