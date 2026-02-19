@@ -50,7 +50,8 @@ const router = createRouter({
       name: 'profile',
       component: ProfileView
     },
-    {path: '/createPlace',
+    {
+      path: '/createPlace',
       name: 'createPlace',
       component: CreatePlaceView 
     },
@@ -67,7 +68,7 @@ const router = createRouter({
       props: true
     },
     {
-      path: '/place/',
+      path: '/place',
       name: 'placeHome',
       component: PlaceView,
       props: true
