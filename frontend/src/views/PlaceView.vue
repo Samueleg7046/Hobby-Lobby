@@ -21,7 +21,7 @@ async function fetchPlaces() {
 
   const data = await response.json();
 
-  places.value = data;
+  place.value = data;
 
   // DEBUG 
   console.log("Luoghi caricati:", data);

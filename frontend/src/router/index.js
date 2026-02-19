@@ -42,6 +42,12 @@ const router = createRouter({
       component: CreateReview,
       props: true
     },
+    {
+      path: '/place/',
+      name: 'placeHome',
+      component: PlaceView,
+      props: true
+    },
   ]
 })
 
