@@ -10,6 +10,21 @@ servers:
     description: Localhost
 
 paths: 
+  /places/feed:
+    get:
+      summary: Get public feed of places
+      responses:
+        '200':
+          description: List of places found
+          content: 
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: "#/components/schemas/PlaceResponse"
+        '204': 
+          description: No groups available for selected filters
+
   /places:
     get:
       summary: Get list of places
@@ -1225,6 +1240,7 @@ components:
       - orarioApertura
       - orarioChiusura
       - indirizzo
+      - self
       properties:
         placeID: 
           type: string
@@ -1272,6 +1288,9 @@ components:
           nullable: true
           items:
             $ref: "#/components/schemas/PlaceReviewResponse"
+        self:
+          type: string
+          description: Link to group
         
     PlaceCreateReview:
       type: object

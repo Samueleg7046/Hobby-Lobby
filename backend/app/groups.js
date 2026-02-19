@@ -5,7 +5,7 @@ import Chat from './models/chat.js';
 
 const router = express.Router();
 
-// get feed of groups with isRecruiting = true
+// feed dei places
 router.get('/feed', async (req, res) => {  // da aggiungere logica per recommended
     const {filter, tags } = req.query;
 

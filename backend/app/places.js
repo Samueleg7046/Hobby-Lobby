@@ -6,6 +6,46 @@ const router = express.Router({mergeParams: true});
 
 //CREAZIONE LUOGO
 
+// get feed of groups with isRecruiting = true
+router.get('/feed', async (req, res) => {  // da aggiungere logica per recommended
+    try{
+        let places = await Place.find();
+
+
+        if (!places || places.length === 0) {
+            return res.status(200).json([]);
+        }
+
+        const response = places.map(p => ({
+                    placeID: p.placeID,
+                    self: `/api/v1/places/${p._id}`,
+                    placeName: p.placeName,
+                    media_recensioni: p.media_recensioni,
+                    attivita: p.attivita,
+                    tags: p.tags,
+                    descrizione_luogo: p. descrizione_luogo,
+                    orarioApertura: p. orarioApertura,
+                    orarioChiusura: p.orarioChiusura,
+                    indirizzo: p.indirizzo,
+                    problemi: p.problemi,
+                    rev: p.rev ? p.rev.map(r => ({
+                                    placeID: r.placeID,
+                                    userID: r.userID,
+                                    description: r.description,
+                                    valutazione: r.valutazione
+                    })) : []
+                }));
+
+        res.status(200).json(response);
+    }
+
+    catch (error){
+         res.status(500).json({message: "Server Error", error: error.message });
+    }
+
+});
+
+
 router.post('', async (req, res) => {
 
     const {
