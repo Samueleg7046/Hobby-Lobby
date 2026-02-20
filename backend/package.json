@@ -16,10 +16,12 @@
     "passport-google-oauth20": "^2.0.0"
   },
   "devDependencies": {
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "jest": "^30.2.0",
+    "supertest": "^7.2.2"
   },
   "scripts": {
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "start": "node index.js",
     "dev": "node -r dotenv/config index.js"
   },
@@ -32,5 +34,8 @@
   "bugs": {
     "url": "https://github.com/Samueleg7046/Hobby-Lobby/issues"
   },
-  "homepage": "https://github.com/Samueleg7046/Hobby-Lobby#readme"
+  "homepage": "https://github.com/Samueleg7046/Hobby-Lobby#readme",
+  "jest": {
+    "setupFiles": ["./jest.setup.js"]
+  }
 }
