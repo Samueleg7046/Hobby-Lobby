@@ -6,14 +6,21 @@ import Notification from './models/notification.js';
 
 const router = express.Router();
 
-// feed dei places
-router.get('/feed', async (req, res) => {  // da aggiungere logica per recommended
-    const {filter, tags } = req.query;
+router.get('/feed', async (req, res) => {  
+    const { filter, tags, q } = req.query;
 
     let query = { isRecruiting: true };
 
     if (tags) {
         query.tags = { $in: tags.split(',') };
+    }
+    
+    if (q) {
+        query.$or = [
+            { groupName: { $regex: q, $options: 'i' } },
+            { description: { $regex: q, $options: 'i' } },
+            { tags: { $regex: q, $options: 'i' } }
+        ];
     }
     
     let groups = await Group.find(query);
@@ -25,9 +32,9 @@ router.get('/feed', async (req, res) => {  // da aggiungere logica per recommend
         groups.sort((a, b) => b.createdAt - a.createdAt);
     }
 
-        if (!groups || groups.length === 0) {
-            return res.status(200).json([]);
-        }
+    if (!groups || groups.length === 0) {
+        return res.status(200).json([]);
+    }
 
     const response = groups.map(g => ({
         self: `/api/v1/groups/${g._id}`,
@@ -96,7 +103,7 @@ router.get('', async (req, res) => {
             self: `/api/v1/groups/${g._id}/meetings/${meet._id}`,
             date: meet.date,
             time: meet.time,
-            place: meet.place,
+            placeId: meet.placeId,
             description: meet.description ?? null,
             status: meet.status,
             totalMembers: meet.totalMembers,
@@ -138,8 +145,8 @@ router.post('/:id/join', async (req, res) => {
             await Notification.create({
                 user: group.createdBy,
                 type: 'group_join',
-                title: 'Nuovo membro nel gruppo',
-                message: `${userWhoJoined.displayName} si è unito a "${group.groupName}"`,
+                title: 'New Member Joined',
+                message: `${userWhoJoined.displayName} joined "${group.groupName}"`,
                 relatedId: groupId,
                 isRead: false
             });
@@ -245,7 +252,7 @@ router.post('', async (req, res) => {
 
         res.location(`/api/v1/groups/${newGroup._id}`).status(201).json(response);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        res.status(400).json({ errore: err.message });
     }
 });
 
@@ -280,7 +287,6 @@ router.get('/:id', async (req, res) =>{
         duration: g.duration,
         frequency: g.frequency,
         isRecruiting: g.isRecruiting,
-        createdBy: g.createdBy,
         creationDate: g.createdAt,
         membersCount: g.members.length,
         members: g.members.map(m => ({
@@ -288,13 +294,13 @@ router.get('/:id', async (req, res) =>{
             self: `/api/v1/users/${m._id}`,
             email: m.email
         })),
-        meetings: g.meetings ? g.meetings.map(meet => ({
+        meetings: g.meetings.map(meet => ({
             meetingId: meet._id,
             groupId: g._id,
             self: `/api/v1/groups/${g._id}/meetings/${meet._id}`,
             date: meet.date,
             time: meet.time,
-            place: meet.place,
+            placeId: meet.placeId,
             description: meet.description ?? null,
             status: meet.status,
             totalMembers: meet.totalMembers,
@@ -305,7 +311,7 @@ router.get('/:id', async (req, res) =>{
                 changeProposal: vote.changeProposal ?? null,
                 respondedAt: vote.respondedAt
             })) : []
-        })) : []
+        }))
     };
 
     return res.status(200).json(result);

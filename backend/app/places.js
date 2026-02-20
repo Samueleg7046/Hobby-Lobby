@@ -7,7 +7,8 @@ const router = express.Router({mergeParams: true});
 // GET FEED DI LUOGHI
 router.get('/feed', async (req, res) => {
     try {
-        let places = await Place.find();
+        // Ordina per più recenti (_id: -1)
+        let places = await Place.find().sort({ _id: -1 });
 
         if (!places || places.length === 0) {
             return res.status(200).json([]);
@@ -64,6 +65,7 @@ router.post('', async (req, res) => {
         }
 
         const safeTags = (tags && tags.length > 0) ? tags : ["Generale"];
+
         const newPlace = new Place({
             placeName,
             indirizzo,
@@ -95,7 +97,7 @@ router.post('', async (req, res) => {
         res.location(`/api/v1/places/${newPlace._id}`).status(201).json(savedPlace);
 
     } catch (error) {
-        console.error("ERROR WHILE SAVING PLACE:", error); 
+        console.error("ERRORE SALVATAGGIO LUOGO:", error); 
         res.status(500).json({message: "Server Error", error: error.message });
     }    
 });
@@ -116,15 +118,32 @@ router.get('/:placeID', async (req, res) => {
    }
 });
 
-// GET LISTA DI LUOGHI E FILTRO TAG
+// GET LISTA DI LUOGHI E FILTRO TAG / RICERCA GLOBALE
 router.get('', async (req, res) => {
     try {
-        const { tagInserito } = req.query;
-        const filter = tagInserito ? { attivita: tagInserito } : {};
-        let places = await Place.find(filter)
+        const { tagInserito, q } = req.query;
+        let filter = {};
         
+        // Filtro esatto per tag (se in uso)
+        if (tagInserito) {
+            filter.attivita = tagInserito;
+        }
+
+        // Ricerca testuale (q) su Nome, Attività e Tags (Case-insensitive)
+        if (q) {
+            filter.$or = [
+                { placeName: { $regex: q, $options: 'i' } },
+                { attivita: { $regex: q, $options: 'i' } },
+                { tags: { $regex: q, $options: 'i' } }
+            ];
+        }
+
+        // Recupero i luoghi filtrati e li ORDINO per più recenti (_id: -1)
+        let places = await Place.find(filter).sort({ _id: -1 });
+        
+        // Restituisci 200 con array vuoto (Invece di 204, per evitare errori di JSON parse nel frontend)
         if (!places || places.length === 0) {
-            return res.status(204).send();
+            return res.status(200).json([]);
         }
     
         const response = places.map(p => ({

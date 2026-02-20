@@ -5,13 +5,18 @@ import { ref, onMounted, onActivated } from 'vue';
 const places = ref([]);
 const loading = ref(true);
 const error = ref(null);
+const searchQuery = ref('');
 
 async function fetchPlaces() {
   try {
     loading.value = true;
     error.value = null;
  
-    const response = await fetch('http://localhost:8080/api/v1/places');
+    const url = searchQuery.value.trim() 
+      ? `http://localhost:8080/api/v1/places?q=${encodeURIComponent(searchQuery.value.trim())}`
+      : 'http://localhost:8080/api/v1/places';
+
+    const response = await fetch(url);
 
     if (!response.ok) {
       throw new Error(`Server error: ${response.status}`);
@@ -45,9 +50,22 @@ onActivated(() => {
       </label>
       
       <div class="min-h-screen bg-base-200 py-8"> 
-        <div class="max-w-2xl mx-auto px-4 flex flex-col gap-8">
+        <div class="max-w-2xl mx-auto px-4 flex flex-col gap-6">
         
-          <h1 class="text-3xl font-bold text-center mb-4">Find a place!</h1>
+          <h1 class="text-3xl font-bold text-center mb-2">Find a place!</h1>
+
+          <div class="flex gap-2">
+            <input 
+              v-model="searchQuery" 
+              @keyup.enter="fetchPlaces"
+              type="text" 
+              placeholder="Search by name, activity or tag..." 
+              class="input input-bordered w-full shadow-sm focus:outline-none focus:border-indigo-500" 
+            />
+            <button @click="fetchPlaces" class="btn bg-indigo-600 hover:bg-indigo-700 text-white border-none px-8 shadow-sm">
+              Search
+            </button>
+          </div>
 
           <div v-if="loading" class="flex justify-center py-10">
             <span class="loading loading-spinner loading-lg text-primary"> </span>
@@ -60,7 +78,8 @@ onActivated(() => {
           </div>
 
           <div v-else-if="places.length === 0" class="text-center py-10"> 
-            <p class="text-gray-500 text-lg">No places found.</p>
+            <p class="text-gray-500 text-lg">No places found matching your search.</p>
+            <button v-if="searchQuery" @click="searchQuery = ''; fetchPlaces()" class="btn btn-ghost mt-4 text-indigo-600">Clear Search</button>
           </div>
 
           <PlaceCard 

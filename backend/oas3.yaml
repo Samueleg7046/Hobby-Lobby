@@ -495,19 +495,6 @@ paths:
             type: string
           required: true
           description: The group ID
-      # request body is temporary, remove after autentication
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-              properties:
-                userId:
-                  type: string
-                  description: The ID of the user leaving the group (Temporary, later use Auth Token)
       responses:
         '200':
           description: Successfully left the group
