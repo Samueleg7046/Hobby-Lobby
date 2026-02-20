@@ -20,9 +20,11 @@ jobs:
 
       - name: Installa le dipendenze
         run: npm install
+        working-directory: ./backend
 
       - name: Esegui i test
         run: npm test
+        working-directory: ./backend
 
       - name: Trigger Deploy su Render (Backend)
         if: success()
