@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from 'vue';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const form = ref({
   uniqueName: '',
   displayName: '',
@@ -13,7 +15,7 @@ const isError = ref(false);
 
 const handleRegister = async () => {
   try {
-    const response = await fetch('http://localhost:8080/api/v1/users', {
+    const response = await fetch(`${API_URL}/users`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form.value)

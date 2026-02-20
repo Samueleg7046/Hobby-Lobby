@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref, reactive } from 'vue';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const props = defineProps({
   user: { type: Object, required: true },
   stats: { type: Object, default: () => ({ groups: 0, friends: 0 }) },
@@ -44,7 +46,7 @@ const saveProfile = async () => {
             profilePicture: formData.profilePicture,
             hobbies: hobbiesArray
         };
-        const res = await fetch(`http://localhost:8080/api/v1/users/${props.user._id}`, {
+        const res = await fetch(`${API_URL}/users/${props.user._id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates)

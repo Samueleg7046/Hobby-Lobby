@@ -2,6 +2,8 @@
 import PlaceCard from '../components/PlaceCard.vue';
 import { ref, onMounted, onActivated } from 'vue';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const places = ref([]);
 const loading = ref(true);
 const error = ref(null);
@@ -13,8 +15,8 @@ async function fetchPlaces() {
     error.value = null;
  
     const url = searchQuery.value.trim() 
-      ? `http://localhost:8080/api/v1/places?q=${encodeURIComponent(searchQuery.value.trim())}`
-      : 'http://localhost:8080/api/v1/places';
+      ? `${API_URL}/places?q=${encodeURIComponent(searchQuery.value.trim())}`
+      : `${API_URL}/places`;
 
     const response = await fetch(url);
 

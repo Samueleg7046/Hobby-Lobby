@@ -2,6 +2,8 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const router = useRouter();
 
 const form = ref({
@@ -36,7 +38,7 @@ async function createPlace() {
             imageUrl: form.value.imageUrl || "" 
         };
 
-        const response = await fetch('http://localhost:8080/api/v1/places', {
+        const response = await fetch(`${API_URL}/places`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

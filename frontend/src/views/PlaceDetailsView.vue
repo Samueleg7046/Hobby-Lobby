@@ -2,6 +2,8 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const route = useRoute();
 
 const place = ref(null);
@@ -21,7 +23,7 @@ const fetchPlaceData = async () => {
     error.value = null;
     try {
         const placeId = route.params.id; 
-        const response = await fetch(`http://localhost:8080/api/v1/places/${placeId}`);
+        const response = await fetch(`${API_URL}/places/${placeId}`);
 
         if (!response.ok) throw new Error("Place not found");
 
@@ -37,7 +39,7 @@ const fetchPlaceData = async () => {
 const fetchReviews = async () => {
     try {
         const placeId = route.params.id;
-        const res = await fetch(`http://localhost:8080/api/v1/places/${placeId}/reviews`);
+        const res = await fetch(`${API_URL}/places/${placeId}/reviews`);
         if (res.ok) {
             reviews.value = await res.json();
         }
@@ -55,7 +57,7 @@ const submitReview = async () => {
     reviewLoading.value = true;
     try {
         const placeId = route.params.id;
-        const res = await fetch(`http://localhost:8080/api/v1/places/${placeId}/reviews`, {
+        const res = await fetch(`${API_URL}/places/${placeId}/reviews`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -86,7 +88,7 @@ const deleteReview = async (reviewId) => {
     if (!confirm("Are you sure you want to delete this review?")) return;
     try {
         const placeId = route.params.id;
-        const res = await fetch(`http://localhost:8080/api/v1/places/${placeId}/reviews/${reviewId}`, {
+        const res = await fetch(`${API_URL}/places/${placeId}/reviews/${reviewId}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userID: myUserId, role: userRole })

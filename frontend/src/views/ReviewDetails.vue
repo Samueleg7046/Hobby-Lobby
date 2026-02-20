@@ -2,6 +2,8 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const route = useRoute();
 
 const review = ref(null);
@@ -13,7 +15,7 @@ const fetchReviewData = async () => {
     try {
         const reviewId = route.params.review_id; // forse cambiare con const {reviewId} = route.params (se non funziona)
         const placeId = route.params.place_id;
-        const response = await fetch(`http://localhost:8080/api/v1/places/${placeId}/reviews/${reviewId}`);
+        const response = await fetch(`${API_URL}/places/${placeId}/reviews/${reviewId}`);
 
         if (!response.ok) throw new Error("Recensione non trovata");
 

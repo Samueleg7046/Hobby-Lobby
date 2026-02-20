@@ -6,6 +6,8 @@ info:
   license:
     name: MIT
 servers:
+  - url: https://Hobby-Lobby-backend.onrender.com/api/v1
+    description: Production Server (Render)
   - url: http://localhost:8080/api/v1
     description: Localhost
 

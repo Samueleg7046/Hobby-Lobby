@@ -3,6 +3,8 @@ import GroupCard from '../components/GroupCard.vue';
 import PlaceCard from '../components/PlaceCard.vue';
 import { ref, onMounted, onActivated } from 'vue';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const groups = ref([]);
 const loading = ref(true);
 const error = ref(null);
@@ -34,8 +36,8 @@ async function fetchGroups() {
     error.value = null;
  
     const url = searchQuery.value.trim() 
-      ? `http://localhost:8080/api/v1/groups/feed?q=${encodeURIComponent(searchQuery.value.trim())}`
-      : 'http://localhost:8080/api/v1/groups/feed';
+      ? `${API_URL}/groups/feed?q=${encodeURIComponent(searchQuery.value.trim())}`
+      : `${API_URL}/groups/feed`;
 
     const response = await fetch(url);
 
