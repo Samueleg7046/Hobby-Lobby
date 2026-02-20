@@ -3,6 +3,8 @@ import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import MeetingCard from '../components/MeetingCard.vue';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const route = useRoute();
 const router = useRouter();
 
@@ -82,7 +84,7 @@ const fetchGroupData = async () => {
         const groupId = route.params.id;
         if (!groupId || groupId === 'undefined') throw new Error("Invalid Group ID");
 
-        const response = await fetch(`http://localhost:8080/api/v1/groups/${groupId}`);
+        const response = await fetch(`${API_URL}/groups/${groupId}`);
         if (!response.ok) throw new Error("Group not found");
 
         group.value = await response.json();
@@ -97,7 +99,7 @@ const fetchGroupData = async () => {
 const checkSavedStatus = async () => {
     if (!myUserId || !group.value) return;
     try {
-        const response = await fetch(`http://localhost:8080/api/v1/users/${myUserId}`);
+        const response = await fetch(`${API_URL}/users/${myUserId}`);
         if (!response.ok) return;
         const user = await response.json();
         
@@ -120,7 +122,7 @@ const handleSave = async () => {
     try {
         const targetId = group.value._id || group.value.groupId || route.params.id;
         
-        const response = await fetch(`http://localhost:8080/api/v1/users/${myUserId}/saved/groups/${targetId}`, {
+        const response = await fetch(`${API_URL}/users/${myUserId}/saved/groups/${targetId}`, {
             method: method,
             headers: { 'Content-Type': 'application/json' }
         });
@@ -143,7 +145,7 @@ const handleJoin = async () => {
 
     try {
         const targetId = group.value.groupId || group.value._id || route.params.id;
-        const response = await fetch(`http://localhost:8080/api/v1/groups/${targetId}/${action}`, {
+        const response = await fetch(`${API_URL}/groups/${targetId}/${action}`, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: myUserId })
@@ -201,7 +203,7 @@ const saveGroupChanges = async () => {
             frequency: editForm.value.frequency
         };
 
-        const res = await fetch(`http://localhost:8080/api/v1/groups/${targetId}`, {
+        const res = await fetch(`${API_URL}/groups/${targetId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -234,7 +236,7 @@ const deleteGroup = async () => {
 
     try {
         const targetId = group.value.groupId || group.value._id || route.params.id;
-        const res = await fetch(`http://localhost:8080/api/v1/groups/${targetId}`, {
+        const res = await fetch(`${API_URL}/groups/${targetId}`, {
             method: 'DELETE'
         });
 
@@ -258,7 +260,7 @@ const createMeeting = async () => {
     }
 
     try {
-            const res = await fetch(`http://localhost:8080/api/v1/groups/${group.value.groupId}/meetings`, {
+            const res = await fetch(`${API_URL}/groups/${group.value.groupId}/meetings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -292,7 +294,7 @@ const handleVote = async ({ meetingId, response, changeProposal }) => {
         const body = { userId: myUserId, response }; 
         if (changeProposal) body.changeProposal = changeProposal;
 
-        const res = await fetch(`http://localhost:8080/api/v1/groups/${gid}/meetings/${meetingId}/vote`, {
+        const res = await fetch(`${API_URL}/groups/${gid}/meetings/${meetingId}/vote`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
@@ -310,7 +312,7 @@ const handleVote = async ({ meetingId, response, changeProposal }) => {
 // admin can update status of meeting
 const handleStatusUpdate = async (meetingId, newStatus) => {
     try {
-        const res = await fetch(`http://localhost:8080/api/v1/groups/${group.value.groupId}/meetings/${meetingId}`, {
+        const res = await fetch(`${API_URL}/groups/${group.value.groupId}/meetings/${meetingId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: myUserId, status: newStatus })
@@ -335,7 +337,7 @@ const handleStatusUpdate = async (meetingId, newStatus) => {
 const handleDelete = async (meetingId) => {
     if(!confirm("Do you really want to delete the meeting?")) return;
     try {
-        const res = await fetch(`http://localhost:8080/api/v1/groups/${group.value.groupId}/meetings/${meetingId}`, {
+        const res = await fetch(`${API_URL}/groups/${group.value.groupId}/meetings/${meetingId}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: myUserId })

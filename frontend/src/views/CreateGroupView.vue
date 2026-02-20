@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const router = useRouter();
 const myUserId = localStorage.getItem('userId');
 
@@ -42,7 +44,7 @@ async function createGroup() {
             frequency: form.value.frequency
         };
 
-        const response = await fetch('http://localhost:8080/api/v1/groups', {
+        const response = await fetch(`${API_URL}/groups`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

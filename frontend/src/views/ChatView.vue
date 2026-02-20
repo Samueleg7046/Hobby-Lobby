@@ -2,6 +2,8 @@
 import { ref, onMounted, nextTick, computed } from 'vue';
 import { useRouter } from 'vue-router';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const router = useRouter();
 
 // AUTH CHECK
@@ -25,7 +27,7 @@ const loadChats = async () => {
     if (!myUserId) return;
     loading.value = true;
     try {
-        const res = await fetch(`http://localhost:8080/api/v1/chats/user/${myUserId}`);
+        const res = await fetch(`${API_URL}/chats/user/${myUserId}`);
         if (res.ok) {
             chats.value = await res.json();
             const requestedChatId = route.query.id;
@@ -45,7 +47,7 @@ const openNewChatModal = async () => {
     friendsList.value = [];
     
     try {
-        const res = await fetch(`http://localhost:8080/api/v1/users/${myUserId}/friends`);
+        const res = await fetch(`${API_URL}/users/${myUserId}/friends`);
         if (res.ok) {
             friendsList.value = await res.json();
         }
@@ -58,7 +60,7 @@ const selectChat = async (chat) => {
     loadingMessages.value = true;
     messages.value = []; 
     try {
-        const res = await fetch(`http://localhost:8080/api/v1/chats/${chat._id}/messages`);
+        const res = await fetch(`${API_URL}/chats/${chat._id}/messages`);
         if (res.ok) {
             messages.value = await res.json();
             scrollToBottom();
@@ -73,7 +75,7 @@ const sendMessage = async () => {
     newMessage.value = ''; 
 
     try {
-        const res = await fetch(`http://localhost:8080/api/v1/chats/${activeChat.value._id}/messages`, {
+        const res = await fetch(`${API_URL}/chats/${activeChat.value._id}/messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ senderId: myUserId, content })
@@ -97,7 +99,7 @@ const sendMessage = async () => {
 
 const startChatWithFriend = async (friendId) => {
     try {
-        const res = await fetch('http://localhost:8080/api/v1/chats/private', {
+        const res = await fetch(`${API_URL}/chats/private`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ myId: myUserId, otherId: friendId })

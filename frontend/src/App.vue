@@ -2,6 +2,8 @@
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { ref, watch, computed, onMounted } from 'vue';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const route = useRoute();
 const router = useRouter();
 
@@ -19,7 +21,7 @@ const unreadCount = computed(() => {
 const fetchNotifications = async () => {
   if (!myUserId.value) return;
   try {
-    const res = await fetch(`http://localhost:8080/api/v1/notifications/${myUserId.value}`);
+    const res = await fetch(`${API_URL}/notifications/${myUserId.value}`);
     if (res.ok) {
         const data = await res.json();
         notifications.value = Array.isArray(data) ? data : [];
@@ -35,7 +37,7 @@ const handleNotificationClick = async (notification) => {
 
   if (!notification.isRead) {
     try {
-      await fetch(`http://localhost:8080/api/v1/notifications/${notification._id}/read`, {
+      await fetch(`${API_URL}/notifications/${notification._id}/read`, {
         method: 'PUT'
       });
       notification.isRead = true;
@@ -57,14 +59,14 @@ const deleteNotification = async (id, event) => {
   if (event) event.stopPropagation();
   notifications.value = notifications.value.filter(n => n._id !== id);
   try {
-    await fetch(`http://localhost:8080/api/v1/notifications/${id}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/notifications/${id}`, { method: 'DELETE' });
   } catch (e) { console.error(e); }
 };
 
 const fetchCurrentUser = async () => {
   if (!myUserId.value) return;
   try {
-    const res = await fetch(`http://localhost:8080/api/v1/users/${myUserId.value}`);
+    const res = await fetch(`${API_URL}/api/v1/users/${myUserId.value}`);
     if (res.ok) {
       currentUser.value = await res.json();
     }

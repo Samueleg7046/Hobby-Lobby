@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import UserCard from '../components/UserCard.vue';
 import GroupCard from '../components/GroupCard.vue';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const route = useRoute();
 const router = useRouter();
 
@@ -60,11 +62,11 @@ const loadData = async () => {
     loading.value = true;
     const userId = route.params.id;
     try {
-        const userRes = await fetch(`http://localhost:8080/api/v1/users/${userId}`);
+        const userRes = await fetch(`${API_URL}/users/${userId}`);
         if (!userRes.ok) throw new Error('User not found');
         user.value = await userRes.json();
 
-        const groupsRes = await fetch('http://localhost:8080/api/v1/groups/feed');
+        const groupsRes = await fetch(`${API_URL}/groups/feed`);
         if (groupsRes.ok) allGroups.value = await groupsRes.json();
     } catch (err) { 
         console.error(err); 
@@ -82,7 +84,7 @@ const handleSearchFriend = async () => {
     requestSent.value = false;
     
     try {
-        const res = await fetch(`http://localhost:8080/api/v1/users/search/handle?query=${searchQuery.value}`);
+        const res = await fetch(`${API_URL}/users/search/handle?query=${searchQuery.value}`);
         if (res.status === 404) throw new Error("No user found with this username.");
         if (!res.ok) throw new Error("Search error.");
         
@@ -101,7 +103,7 @@ const handleSearchFriend = async () => {
 const sendFriendRequest = async () => {
     if (!searchResult.value) return;
     try {
-        const res = await fetch('http://localhost:8080/api/v1/friends/request', {
+        const res = await fetch(`${API_URL}/friends/request`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -129,7 +131,7 @@ const sendFriendRequest = async () => {
 const loadPendingRequests = async () => {
     if (!isMyProfile.value) return; 
     try {
-        const res = await fetch(`http://localhost:8080/api/v1/friends/requests/${myUserId}`);
+        const res = await fetch(`${API_URL}/friends/requests/${myUserId}`);
         if (res.ok) {
             pendingRequests.value = await res.json();
         }
@@ -140,7 +142,7 @@ const loadPendingRequests = async () => {
 
 const handleResponse = async (requestId, action, requester) => {
     try {
-        const res = await fetch(`http://localhost:8080/api/v1/friends/respond/${requestId}`, {
+        const res = await fetch(`${API_URL}/friends/respond/${requestId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action })
@@ -162,7 +164,7 @@ const handleResponse = async (requestId, action, requester) => {
 const removeFriend = async (friendId) => {
     if (!confirm("Are you sure you want to remove this user from your friends?")) return;
     try {
-        const res = await fetch(`http://localhost:8080/api/v1/users/${myUserId}/friends/${friendId}`, {
+        const res = await fetch(`${API_URL}/users/${myUserId}/friends/${friendId}`, {
             method: 'DELETE'
         });
         if (res.ok) {
@@ -181,7 +183,7 @@ const deleteAccount = async () => {
     if (!confirmed) return;
 
     try {
-        const res = await fetch(`http://localhost:8080/api/v1/users/${myUserId}`, {
+        const res = await fetch(`${API_URL}/users/${myUserId}`, {
             method: 'DELETE'
         });
 

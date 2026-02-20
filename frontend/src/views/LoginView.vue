@@ -2,16 +2,18 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
 const router = useRouter();
 const email = ref('');
 const password = ref('');
 const error = ref('');
 
-const googleLoginUrl = 'http://localhost:8080/api/v1/users/auth/google';
+const googleLoginUrl = `${API_URL}/users/auth/google`;
 
 const handleLogin = async () => {
   try {
-    const response = await fetch('http://localhost:8080/api/v1/users/login', {
+    const response = await fetch(`${API_URL}/users/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ loginIdentifier: email.value, password: password.value })
